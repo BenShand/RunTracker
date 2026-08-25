@@ -1,0 +1,1929 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Welcome</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root {
+    --bg: #10151A;
+    --surface: #1A2129;
+    --surface-raised: #212B35;
+    --border: #2A343E;
+    --border-soft: #232C34;
+    --text-hi: #EDF1F4;
+    --text-mid: #8B98A5;
+    --text-low: #5B6670;
+    --lime: #C6F135;
+    --cyan: #46D7E8;
+    --coral: #FF6B57;
+    --violet: #B296FF;
+    --amber: #FFD166;
+    --orange: #FF9F6B;
+    --gray: #7C8891;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); }
+  body {
+    font-family: 'Inter', sans-serif;
+    color: var(--text-hi);
+    padding: 20px 16px 60px;
+  }
+  .display { font-family: 'Big Shoulders Display', sans-serif; }
+  .mono { font-family: 'IBM Plex Mono', monospace; }
+
+  .app { max-width: 900px; margin: 0 auto; }
+
+  input, select, textarea, button { font-family: inherit; }
+  input, select, textarea {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 11px;
+    color: var(--text-hi);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    width: 100%;
+  }
+  select { font-family: 'Inter', sans-serif; }
+  input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible {
+    outline: 2px solid var(--lime);
+    outline-offset: 1px;
+  }
+  button { cursor: pointer; border: none; background: none; color: inherit; }
+
+  .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .field-label {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--text-mid);
+  }
+  .field-hint { font-size: 11px; color: var(--text-low); }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    border-radius: 8px; padding: 8px 14px; font-weight: 600; font-size: 13px;
+  }
+  .btn-primary { background: var(--lime); color: var(--bg); font-weight: 700; }
+  .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text-mid); }
+  .btn-icon { background: transparent; color: var(--text-low); padding: 4px; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 20px;
+  }
+
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;
+  }
+  .pill-dot { width: 6px; height: 6px; border-radius: 999px; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1.3fr; gap: 20px; }
+  @media (max-width: 720px) {
+    .grid-2 { grid-template-columns: 1fr; }
+    .stat-row { flex-direction: column; }
+  }
+
+  .stat-row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .stat-card { flex: 1 1 160px; min-width: 150px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px; }
+
+  .section-title { font-family: 'Big Shoulders Display', sans-serif; font-weight: 700; font-size: 20px; margin-bottom: 12px; }
+
+  .session-row { display: flex; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; }
+  .type-dot { width: 8px; height: 8px; border-radius: 999px; flex-shrink: 0; }
+
+  a { color: var(--lime); }
+
+  #toast {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: var(--surface-raised); border: 1px solid var(--border); border-radius: 10px;
+    padding: 10px 18px; font-size: 13px; display: none; z-index: 999; max-width: 90vw;
+  }
+
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none;
+    align-items: center; justify-content: center; z-index: 1000; padding: 20px;
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px; max-width: 480px; width: 100%; max-height: 85vh; overflow-y: auto; }
+
+  .chat-bubble { max-width: 88%; border-radius: 10px; padding: 9px 12px; font-size: 13px; line-height: 1.5; white-space: pre-wrap; }
+  .chat-bubble.user { align-self: flex-end; background: rgba(198,241,53,0.1); border: 1px solid rgba(198,241,53,0.25); }
+  .chat-bubble.assistant { align-self: flex-start; background: var(--surface-raised); border: 1px solid var(--border); }
+</style>
+</head>
+<body>
+<div class="app" id="app" style="display:none;"></div>
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+<div id="authGate" style="min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px;">
+  <div class="card" style="max-width:380px; width:100%;">
+    <h2 class="display" style="margin-top:0;">Welcome</h2>
+    <p style="font-size:13px; color:var(--text-mid); margin-bottom:18px;">Sign in or create an account. Your training data is private to you.</p>
+    <div class="field" style="margin-bottom:12px;">
+      <span class="field-label">Email</span>
+      <input type="email" id="authEmail" autocomplete="email" />
+    </div>
+    <div class="field" style="margin-bottom:8px;">
+      <span class="field-label">Password</span>
+      <input type="password" id="authPassword" autocomplete="current-password" />
+    </div>
+    <div id="authError" style="color:var(--coral); font-size:12px; margin-bottom:10px; display:none;"></div>
+    <div id="authMsg" style="color:var(--lime); font-size:12px; margin-bottom:10px; display:none;"></div>
+    <div style="display:flex; gap:10px;">
+      <button class="btn btn-primary" id="loginBtn" style="flex:1;">Log in</button>
+      <button class="btn btn-ghost" id="signupBtn" style="flex:1;">Sign up</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+/* ======================================================================
+   Colors / type metadata
+   ====================================================================== */
+const COLORS = {
+  bg: '#10151A', surface: '#1A2129', surfaceRaised: '#212B35',
+  border: '#2A343E', borderSoft: '#232C34',
+  textHi: '#EDF1F4', textMid: '#8B98A5', textLow: '#5B6670',
+  lime: '#C6F135', cyan: '#46D7E8', coral: '#FF6B57', violet: '#B296FF',
+  amber: '#FFD166', orange: '#FF9F6B', gray: '#7C8891',
+};
+
+const TYPE_META = {
+  Easy: { color: COLORS.cyan, label: 'Easy Run' },
+  Tempo: { color: COLORS.lime, label: 'Tempo' },
+  Interval: { color: COLORS.coral, label: 'Interval' },
+  Long: { color: COLORS.violet, label: 'Long Run' },
+  RacePace: { color: COLORS.amber, label: 'Race Pace' },
+  Brick: { color: COLORS.orange, label: 'Brick' },
+  Recovery: { color: COLORS.gray, label: 'Recovery' },
+};
+const TYPE_ORDER = ['Easy', 'Tempo', 'Interval', 'Long', 'RacePace', 'Brick', 'Recovery'];
+const KM_PER_MI = 1.60934;
+
+const ICON_PENCIL = '&#9998;';
+const ICON_DOWNLOAD = '&#8595;';
+const ICON_UPLOAD = '&#8593;';
+const ICON_CHECK = '&#10003;';
+const ICON_REFRESH = '&#8635;';
+const ICON_TRASH = '&#128465;';
+
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function escapeAttr(s) { return escapeHtml(s); }
+
+/* ======================================================================
+   Date / formatting helpers
+   ====================================================================== */
+function todayISO() { return new Date().toISOString().slice(0, 10); }
+function daysBetween(aISO, bISO) {
+  const a = new Date(aISO + 'T00:00:00');
+  const b = new Date(bISO + 'T00:00:00');
+  return Math.round((b - a) / 86400000);
+}
+function addDays(iso, days) {
+  const d = new Date(iso + 'T00:00:00');
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+function fmtDate(iso) {
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+function formatDuration(totalSeconds) {
+  if (totalSeconds == null || isNaN(totalSeconds)) return '--:--';
+  const s = Math.round(totalSeconds);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+  return `${m}:${String(sec).padStart(2, '0')}`;
+}
+function parseDuration(str) {
+  if (!str) return null;
+  const parts = str.trim().split(':').map((p) => p.trim());
+  if (parts.some((p) => p === '' || isNaN(Number(p)))) return null;
+  let secs = 0;
+  if (parts.length === 3) secs = Number(parts[0]) * 3600 + Number(parts[1]) * 60 + Number(parts[2]);
+  else if (parts.length === 2) secs = Number(parts[0]) * 60 + Number(parts[1]);
+  else if (parts.length === 1) secs = Number(parts[0]);
+  else return null;
+  return secs > 0 ? secs : null;
+}
+function uid() { return Math.random().toString(36).slice(2, 10) + Date.now().toString(36); }
+
+/* ======================================================================
+   Supabase setup — FILL IN YOUR OWN PROJECT'S VALUES BELOW
+   (Settings -> API in your Supabase dashboard). The anon/public key is
+   designed to be safe in client-side code; access control is enforced by
+   the Row Level Security policies from supabase_schema.sql, not by hiding
+   this key.
+   ====================================================================== */
+const SUPABASE_URL = 'YOUR_SUPABASE_PROJECT_URL'; // e.g. https://xxxxx.supabase.co
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let currentUser = null;
+
+/* ======================================================================
+   Storage — sessions & config live in Supabase (per logged-in user, via
+   Row Level Security), only the AI Coach's API key stays in this
+   browser's localStorage since it's a personal credential, not app data.
+   ====================================================================== */
+// AI Coach now runs through the shared 'ai-coach' Supabase Edge Function
+// (see ai_coach_edge_function.ts) — no per-user API key needed anymore.
+
+function dbRowToSession(row) {
+  return { id: row.id, date: row.date, type: row.type, distanceKm: row.distance_km, totalSeconds: row.total_seconds, avgHR: row.avg_hr, rpe: row.rpe, notes: row.notes || '' };
+}
+function sessionToDbRow(session) {
+  return { user_id: currentUser.id, date: session.date, type: session.type, distance_km: session.distanceKm, total_seconds: session.totalSeconds, avg_hr: session.avgHR, rpe: session.rpe, notes: session.notes || '' };
+}
+async function fetchSessionsFromDB() {
+  const { data, error } = await supabaseClient.from('runlog_sessions').select('*').eq('user_id', currentUser.id).order('date');
+  if (error) { console.error('fetch sessions failed', error); return []; }
+  return (data || []).map(dbRowToSession);
+}
+async function insertSessionDB(session) {
+  const { data, error } = await supabaseClient.from('runlog_sessions').insert(sessionToDbRow(session)).select().single();
+  if (error) throw error;
+  return dbRowToSession(data);
+}
+async function updateSessionDB(session) {
+  const { error } = await supabaseClient.from('runlog_sessions').update(sessionToDbRow(session)).eq('id', session.id).eq('user_id', currentUser.id);
+  if (error) throw error;
+}
+async function deleteSessionDB(id) {
+  const { error } = await supabaseClient.from('runlog_sessions').delete().eq('id', id).eq('user_id', currentUser.id);
+  if (error) throw error;
+}
+async function bulkInsertSessionsDB(sessions) {
+  if (!sessions.length) return [];
+  const { data, error } = await supabaseClient.from('runlog_sessions').insert(sessions.map(sessionToDbRow)).select();
+  if (error) throw error;
+  return (data || []).map(dbRowToSession);
+}
+async function fetchConfigFromDB() {
+  const { data, error } = await supabaseClient.from('runlog_config').select('data').eq('user_id', currentUser.id).maybeSingle();
+  if (error) { console.error('fetch config failed', error); return null; }
+  return data ? data.data : null;
+}
+async function saveConfigDB(cfg) {
+  const { error } = await supabaseClient.from('runlog_config').upsert({ user_id: currentUser.id, data: cfg, updated_at: new Date().toISOString() });
+  if (error) console.error('save config failed', error);
+}
+
+/* ----------------------------------------------------------------------
+   Profile & leaderboard (opt-in — see supabase_leaderboard.sql for the
+   views/RLS that make this safe: opting in only ever shares a display
+   name and AGGREGATED stats — total distance, average pace, average HR —
+   never individual run details, dates, or notes.)
+   ---------------------------------------------------------------------- */
+async function fetchOwnProfile() {
+  const { data, error } = await supabaseClient.from('profiles').select('*').eq('id', currentUser.id).maybeSingle();
+  if (error) { console.error('fetch profile failed', error); return null; }
+  return data;
+}
+async function saveOwnProfile(profile) {
+  const { error } = await supabaseClient.from('profiles').upsert({
+    id: currentUser.id,
+    display_name: profile.display_name,
+    show_on_leaderboard: profile.show_on_leaderboard,
+  });
+  if (error) throw error;
+}
+async function fetchLeaderboardView(period) {
+  const view = period === 'week' ? 'leaderboard_weekly' : 'leaderboard_monthly';
+  const { data, error } = await supabaseClient.from(view).select('*').order('total_km', { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+function formatLeaderboardRows(rows, unit) {
+  return rows.map((r) => {
+    const distDisplay = unit === 'km' ? r.total_km : r.total_km / KM_PER_MI;
+    const paceDisplay = r.avg_pace_sec_per_km != null ? (unit === 'km' ? r.avg_pace_sec_per_km : r.avg_pace_sec_per_km * KM_PER_MI) : null;
+    return {
+      userId: r.user_id, name: r.display_name || 'Runner',
+      distance: distDisplay, avgPaceSec: paceDisplay, avgHR: r.avg_hr, count: r.session_count,
+      isMe: r.user_id === currentUser.id,
+    };
+  });
+}
+
+const DEFAULT_CONFIG = {
+  raceName: 'Half Ironman',
+  raceDate: addDays(todayISO(), 365),
+  unit: 'km',
+  experienceLevel: 'Intermediate',
+  weeklyVolumeCapKm: null,
+  programStartDate: null,
+  raceDistanceKm: 21.1,
+};
+
+/* ======================================================================
+   Evidence-based volume model (Fokkema 2020 + Doherty 2020)
+   ====================================================================== */
+const HALF_MARATHON_KM = 21.1, MARATHON_KM = 42.2;
+const HALF_MARATHON_VOLUME_KM = 32, MARATHON_VOLUME_KM = 65;
+const HALF_MARATHON_LONGRUN_KM = 21, MARATHON_LONGRUN_KM = 25;
+
+function interpolateByRaceDistance(raceDistanceKm, valueAtHalf, valueAtMarathon) {
+  const span = MARATHON_KM - HALF_MARATHON_KM;
+  const t = (raceDistanceKm - HALF_MARATHON_KM) / span;
+  const value = valueAtHalf + t * (valueAtMarathon - valueAtHalf);
+  const minValue = Math.min(valueAtHalf, valueAtMarathon) * 0.4;
+  return Math.max(minValue, value);
+}
+function evidenceLongRunTargetKm(raceDistanceKm) {
+  const d = raceDistanceKm || HALF_MARATHON_KM;
+  const raw = interpolateByRaceDistance(d, HALF_MARATHON_LONGRUN_KM, MARATHON_LONGRUN_KM);
+  return d < HALF_MARATHON_KM ? Math.min(raw, d * 1.1) : raw;
+}
+function evidenceWeeklyVolumeKm(raceDistanceKm) {
+  return interpolateByRaceDistance(raceDistanceKm || HALF_MARATHON_KM, HALF_MARATHON_VOLUME_KM, MARATHON_VOLUME_KM);
+}
+const EXPERIENCE_LEVELS = ['Beginner', 'Intermediate', 'Advanced'];
+function experienceWeeklyCapKm(level, raceDistanceKm) {
+  const inter = evidenceWeeklyVolumeKm(raceDistanceKm);
+  const ratios = { Beginner: 0.78, Intermediate: 1, Advanced: 1.4 };
+  return Math.round(inter * (ratios[level] ?? 1));
+}
+
+const TYPE_WEEKLY_SHARE = { Recovery: 0.12, Easy: 0.2, Long: 0.35, Tempo: 0.2, Interval: 0.15, RacePace: 0.2, Brick: 0.2 };
+
+/* ======================================================================
+   Program phase / periodization
+   ====================================================================== */
+const PHASES = [
+  { key: 'Base', end: 0.45, color: COLORS.cyan },
+  { key: 'Build', end: 0.75, color: COLORS.lime },
+  { key: 'Peak', end: 0.9, color: COLORS.amber },
+  { key: 'Taper', end: 1.0, color: COLORS.coral },
+];
+
+function resolveProgramStart(config) {
+  const stored = config.programStartDate || addDays(config.raceDate, -365);
+  if (daysBetween(stored, config.raceDate) < 7) return addDays(config.raceDate, -7);
+  return stored;
+}
+function getProgramWindow(config) { return { start: resolveProgramStart(config), end: config.raceDate }; }
+function getElapsedFraction(config) {
+  const { start, end } = getProgramWindow(config);
+  const total = Math.max(1, daysBetween(start, end));
+  const elapsed = daysBetween(start, todayISO());
+  return Math.min(1, Math.max(0, elapsed / total));
+}
+function getCurrentPhase(config) {
+  const frac = getElapsedFraction(config);
+  if (frac >= 1) return { key: 'Race', color: COLORS.coral };
+  for (const p of PHASES) if (frac <= p.end) return p;
+  return PHASES[PHASES.length - 1];
+}
+function programWeekIndex(config, dateISO) {
+  const start = resolveProgramStart(config);
+  const totalDays = daysBetween(start, config.raceDate);
+  const totalWeeks = Math.max(1, Math.round(totalDays / 7));
+  const idx = Math.floor(daysBetween(start, dateISO) / 7);
+  return { weekIndex: Math.max(0, Math.min(totalWeeks, idx)), totalWeeks };
+}
+function effectiveWeeklyCapKm(config, dateISO) {
+  const peak = config.weeklyVolumeCapKm || experienceWeeklyCapKm(config.experienceLevel, config.raceDistanceKm);
+  const race = peak / 2;
+  const { weekIndex, totalWeeks } = programWeekIndex(config, dateISO);
+  const buildEndFraction = PHASES.find((p) => p.key === 'Build').end;
+  const peakEndFraction = PHASES.find((p) => p.key === 'Peak').end;
+  const rampEndWeek = Math.max(1, Math.min(Math.round(buildEndFraction * totalWeeks), Math.max(1, totalWeeks - 2)));
+  const peakEndWeek = Math.max(rampEndWeek + 1, Math.min(Math.round(peakEndFraction * totalWeeks), Math.max(rampEndWeek + 1, totalWeeks - 1)));
+  const floor = Math.max(peak * 0.2, 3);
+  const idealStart = peak / Math.pow(1.1, rampEndWeek);
+  const startVolume = Math.max(idealStart, floor);
+  const weeksToReachPeak = startVolume >= peak ? 0 : Math.min(rampEndWeek, Math.ceil(Math.log(peak / startVolume) / Math.log(1.1)));
+  if (weekIndex < rampEndWeek) {
+    if (weekIndex >= weeksToReachPeak) return peak;
+    return Math.min(peak, startVolume * Math.pow(1.1, weekIndex));
+  }
+  if (weekIndex < peakEndWeek) return peak;
+  const taperWeeks = Math.max(1, totalWeeks - peakEndWeek);
+  const intoTaper = weekIndex - peakEndWeek;
+  const frac = Math.min(1, intoTaper / taperWeeks);
+  return peak - (peak - race) * frac;
+}
+
+/* ======================================================================
+   Suggestion engine (rule-based, ported directly from the original app)
+   ====================================================================== */
+function computeSuggestedRun(sessions, config, unit) {
+  const unitLabel = unit === 'km' ? 'km' : 'mi';
+  const toUnit = (km) => (unit === 'km' ? km : km / KM_PER_MI);
+  const sorted = [...sessions].sort((a, b) => (a.date < b.date ? -1 : 1));
+  const phase = getCurrentPhase(config).key;
+
+  const weeklyCapKm = effectiveWeeklyCapKm(config, todayISO());
+  const weeklyCap = toUnit(weeklyCapKm);
+
+  function clampToCap(rawValue, type, floor) {
+    const cap = weeklyCap * (TYPE_WEEKLY_SHARE[type] ?? 0.2);
+    const value = Math.max(floor, Math.min(rawValue, cap));
+    return { value, capped: rawValue > cap + 0.3 };
+  }
+  function capNote(capped) {
+    return capped ? ` (scaled to fit your ~${Math.round(weeklyCap)} ${unitLabel}/week target)` : '';
+  }
+
+  if (sorted.length === 0) {
+    return {
+      type: 'Easy',
+      distanceLabel: `${Math.max(3, Math.round(weeklyCap * 0.15))} ${unitLabel}`,
+      effortLabel: 'Conversational pace, RPE 3-4',
+      rationale: 'No sessions logged yet — start with an easy aerobic run to establish a baseline for pace, heart rate, and how effort feels before adding intensity.',
+    };
+  }
+
+  const last = sorted[sorted.length - 1];
+  const daysSinceLast = daysBetween(last.date, todayISO());
+  const hardTypes = ['Tempo', 'Interval', 'RacePace', 'Brick'];
+  const lastWasHard = hardTypes.includes(last.type) || last.rpe >= 7;
+
+  const weekAgo = addDays(todayISO(), -7);
+  const last7 = sorted.filter((s) => s.date >= weekAgo);
+  const hardCountLast7 = last7.filter((s) => hardTypes.includes(s.type)).length;
+  const hasLongLast7 = last7.some((s) => s.type === 'Long');
+  const avgEasyDist =
+    sorted.filter((s) => s.type === 'Easy').slice(-5).reduce((a, s) => a + toUnit(s.distanceKm), 0) /
+      Math.max(1, sorted.filter((s) => s.type === 'Easy').slice(-5).length) || weeklyCap * 0.2;
+  const avgLongDist =
+    sorted.filter((s) => s.type === 'Long').slice(-3).reduce((a, s) => a + toUnit(s.distanceKm), 0) /
+      Math.max(1, sorted.filter((s) => s.type === 'Long').slice(-3).length) || weeklyCap * 0.3;
+
+  if (lastWasHard && daysSinceLast <= 1) {
+    const { value, capped } = clampToCap(avgEasyDist * 0.6, 'Recovery', 2);
+    return {
+      type: 'Recovery',
+      distanceLabel: `${Math.round(value)} ${unitLabel}`,
+      effortLabel: 'Very easy, RPE 2-3, walk breaks fine',
+      rationale: `Your last session (${TYPE_META[last.type]?.label}, RPE ${last.rpe}) was demanding. A short, easy shakeout run promotes blood flow and recovery without adding fatigue, keeping this week's hard/easy balance intact.${capNote(capped)}`,
+    };
+  }
+
+  if (daysSinceLast >= 4) {
+    const { value, capped } = clampToCap(avgEasyDist * 0.75, 'Easy', 3);
+    return {
+      type: 'Easy',
+      distanceLabel: `${Math.round(value)} ${unitLabel}`,
+      effortLabel: 'Conversational pace, RPE 3-4',
+      rationale: `It's been ${daysSinceLast} days since your last run. Ease back in with a shorter aerobic run before returning to harder efforts — this protects against injury and lets you gauge current fitness.${capNote(capped)}`,
+    };
+  }
+
+  if (hardCountLast7 >= 2) {
+    const { value, capped } = clampToCap(avgEasyDist, 'Easy', 3);
+    return {
+      type: 'Easy',
+      distanceLabel: `${Math.round(value)} ${unitLabel}`,
+      effortLabel: 'Conversational pace, RPE 3-4, nasal breathing if comfortable',
+      rationale: `You've already logged ${hardCountLast7} hard session(s) this week. Endurance athletes improve most by keeping roughly 80% of running easy — an aerobic run here builds your cardiovascular base without compounding fatigue.${capNote(capped)}`,
+    };
+  }
+
+  if ((phase === 'Base' || phase === 'Build' || phase === 'Peak') && !hasLongLast7) {
+    const evidenceTarget = toUnit(evidenceLongRunTargetKm(config.raceDistanceKm));
+    const historyBasedTarget = avgLongDist + (phase === 'Build' ? 1 : 0.5);
+    const targetFraction = phase === 'Peak' ? 1 : phase === 'Build' ? 0.75 : 0;
+    const rawTarget = targetFraction > 0 ? Math.max(historyBasedTarget, evidenceTarget * targetFraction) : historyBasedTarget;
+    const { value, capped } = clampToCap(rawTarget, 'Long', 4);
+    const nearEvidence = value >= evidenceTarget * 0.9;
+    return {
+      type: 'Long',
+      distanceLabel: `${Math.round(value)} ${unitLabel}`,
+      effortLabel: 'Steady, RPE 4-5, controlled the whole way',
+      rationale: `No long run yet this week, and you're in the ${phase} phase. A progressively longer steady-state run is the single biggest driver of long-course endurance and fat-burning efficiency for a half-ironman.${
+        nearEvidence ? ` This is approaching the ~${Math.round(evidenceTarget)} ${unitLabel} mark that endurance-running research links to meaningfully faster race times at your goal distance, with no added injury risk (Fokkema et al., 2020; Doherty et al., 2020).` : ''
+      }${capNote(capped)}`,
+    };
+  }
+
+  if ((phase === 'Build' || phase === 'Peak') && hardCountLast7 === 0) {
+    const useTempo = last.type !== 'Tempo';
+    const { value, capped } = clampToCap(avgEasyDist, useTempo ? 'Tempo' : 'Interval', 3);
+    return {
+      type: useTempo ? 'Tempo' : 'Interval',
+      distanceLabel: useTempo ? `${Math.round(value)} ${unitLabel} incl. 15-20 min at tempo` : `6-8 x 3 min hard / 2 min easy`,
+      effortLabel: useTempo ? 'Comfortably hard, RPE 6-7' : 'Hard, RPE 8, controlled form',
+      rationale: `You're in the ${phase} phase without a quality session yet this week. ${useTempo ? 'A tempo effort' : 'Short intervals'} raise your lactate threshold and running economy — the direct path to a faster sustainable race pace.${useTempo ? capNote(capped) : ''}`,
+    };
+  }
+
+  if (phase === 'Taper' || phase === 'Race') {
+    const { value, capped } = clampToCap(avgEasyDist * 0.6, 'Recovery', 2);
+    return {
+      type: 'Easy',
+      distanceLabel: `${Math.round(value)} ${unitLabel}`,
+      effortLabel: 'Easy with a few short pickups, RPE 3-4',
+      rationale: `You're in the taper. Volume drops but a little sharpness stays — short easy running with brief pickups keeps legs primed without adding fatigue before race day.${capNote(capped)}`,
+    };
+  }
+
+  const { value, capped } = clampToCap(avgEasyDist, 'Easy', 3);
+  return {
+    type: 'Easy',
+    distanceLabel: `${Math.round(value)} ${unitLabel}`,
+    effortLabel: 'Conversational pace, RPE 3-4',
+    rationale: `A steady aerobic run fits well here, building consistency between your harder efforts.${capNote(capped)}`,
+  };
+}
+
+const TYPE_PACE_DELTA = { Recovery: 35, Easy: 0, Long: 10, RacePace: -15, Tempo: -30, Interval: -45, Brick: 10 };
+
+function computeSuggestedPace(sessions, type, unit, recentRpeAvg) {
+  const unitLabel = unit === 'km' ? 'km' : 'mi';
+  const toUnit = (km) => (unit === 'km' ? km : km / KM_PER_MI);
+  const paceOf = (s) => s.totalSeconds / toUnit(s.distanceKm);
+  const sameType = sessions.filter((s) => s.type === type).slice(-5);
+  const easyRuns = sessions.filter((s) => s.type === 'Easy' || s.type === 'Recovery').slice(-8);
+  let basePace, source;
+  if (sameType.length) {
+    basePace = sameType.reduce((a, s) => a + paceOf(s), 0) / sameType.length;
+    source = `your recent ${TYPE_META[type]?.label || type} pace`;
+  } else if (easyRuns.length) {
+    basePace = easyRuns.reduce((a, s) => a + paceOf(s), 0) / easyRuns.length + (TYPE_PACE_DELTA[type] ?? 0);
+    source = `your easy-run pace, adjusted for ${TYPE_META[type]?.label || type}`;
+  } else return null;
+  let adjustment = 0, adjNote = '';
+  if (recentRpeAvg != null) {
+    if (recentRpeAvg >= 7 && type !== 'Interval') { adjustment = 12; adjNote = `eased slightly since your last few sessions ran RPE ${recentRpeAvg.toFixed(1)}`; }
+    else if (recentRpeAvg <= 3 && (type === 'Easy' || type === 'Long')) { adjustment = -5; adjNote = `held steady — recent effort has felt comfortable (RPE ${recentRpeAvg.toFixed(1)})`; }
+  }
+  const center = basePace + adjustment;
+  return { label: `${formatDuration(center - 8)}-${formatDuration(center + 8)} /${unitLabel}`, center, source, adjNote };
+}
+
+function chooseNextRunDay(suggestionType, daysSinceLast) {
+  let offset = 0;
+  if (suggestionType === 'Recovery') offset = 0;
+  else if (suggestionType === 'Long') {
+    offset = Math.max(1, daysSinceLast >= 1 ? 1 : 2);
+    const candidate = addDays(todayISO(), offset);
+    const dow = new Date(candidate + 'T00:00:00').getDay();
+    const daysToSat = (6 - dow + 7) % 7;
+    if (daysToSat <= 5) offset += daysToSat;
+  } else if (suggestionType === 'Tempo' || suggestionType === 'Interval') offset = 1;
+  else offset = daysSinceLast <= 1 ? 1 : 0;
+  if (daysSinceLast === 0) offset = Math.max(offset, 1);
+  return addDays(todayISO(), offset);
+}
+function formatDayLabel(dateStr) {
+  const today = todayISO();
+  const tomorrow = addDays(today, 1);
+  if (dateStr === today) return 'Today';
+  if (dateStr === tomorrow) return 'Tomorrow';
+  return new Date(dateStr + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+}
+
+function enrichSuggestion(base, sessions, config, unit) {
+  const sorted = [...sessions].sort((a, b) => (a.date < b.date ? -1 : 1));
+  const last = sorted[sorted.length - 1];
+  const daysSinceLast = last ? daysBetween(last.date, todayISO()) : 3;
+  const recentN = sorted.slice(-3);
+  const recentRpeAvg = recentN.length ? recentN.reduce((a, s) => a + s.rpe, 0) / recentN.length : null;
+  const weekAgo = addDays(todayISO(), -7);
+  const monthAgo = addDays(todayISO(), -30);
+  const toUnit = (km) => (unit === 'km' ? km : km / KM_PER_MI);
+  const weekDist = sorted.filter((s) => s.date >= weekAgo).reduce((a, s) => a + toUnit(s.distanceKm), 0);
+  const monthDist = sorted.filter((s) => s.date >= monthAgo).reduce((a, s) => a + toUnit(s.distanceKm), 0);
+  const pace = computeSuggestedPace(sorted, base.type, unit, recentRpeAvg);
+
+  let extra = ` Over the last 7 days you've run ${weekDist.toFixed(1)} ${unit}, ${monthDist.toFixed(1)} ${unit} over the last 30.`;
+  if (recentRpeAvg != null) extra += ` Your last ${recentN.length} session(s) averaged RPE ${recentRpeAvg.toFixed(1)}.`;
+
+  const suggestedDate = chooseNextRunDay(base.type, daysSinceLast);
+  const dayLabel = formatDayLabel(suggestedDate);
+  extra += ` ${dayLabel} fits your recovery/schedule pattern.`;
+
+  return {
+    ...base,
+    rationale: base.rationale + extra,
+    dayLabel,
+    paceLabel: pace?.label || null,
+    paceNote: pace ? `based on ${pace.source}${pace.adjNote ? `, ${pace.adjNote}` : ''}` : null,
+  };
+}
+
+/* ======================================================================
+   GPX parsing (client-side — no server round-trip needed)
+   ====================================================================== */
+function haversineM(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const p1 = lat1 * Math.PI / 180, p2 = lat2 * Math.PI / 180;
+  const dphi = (lat2 - lat1) * Math.PI / 180;
+  const dlambda = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dphi / 2) ** 2 + Math.cos(p1) * Math.cos(p2) * Math.sin(dlambda / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+function parseGpxText(text) {
+  const doc = new DOMParser().parseFromString(text, 'application/xml');
+  if (doc.querySelector('parsererror')) throw new Error('Invalid GPX/XML');
+  const trkpts = Array.from(doc.getElementsByTagName('trkpt'));
+  if (trkpts.length < 2) throw new Error('Not enough trackpoints in this file');
+
+  const nameEl = doc.getElementsByTagName('name')[0];
+  const name = nameEl ? nameEl.textContent : '';
+
+  const points = trkpts.map((pt) => {
+    const lat = parseFloat(pt.getAttribute('lat'));
+    const lon = parseFloat(pt.getAttribute('lon'));
+    const timeEl = pt.getElementsByTagName('time')[0];
+    const time = timeEl ? new Date(timeEl.textContent) : null;
+    // Garmin TrackPointExtension heart rate, namespace-agnostic lookup
+    let hr = null;
+    const hrEls = pt.getElementsByTagName('*');
+    for (const el of hrEls) {
+      if (el.tagName.toLowerCase().endsWith('hr')) { hr = parseInt(el.textContent, 10); break; }
+    }
+    return { lat, lon, time, hr };
+  });
+
+  let totalM = 0;
+  for (let i = 1; i < points.length; i++) {
+    totalM += haversineM(points[i - 1].lat, points[i - 1].lon, points[i].lat, points[i].lon);
+  }
+
+  const times = points.map((p) => p.time).filter((t) => t && !isNaN(t.getTime()));
+  const elapsedS = times.length >= 2 ? (times[times.length - 1] - times[0]) / 1000 : null;
+
+  // Devices vary a lot in recording cadence — dense continuous recording
+  // (~1s intervals) vs. "smart recording" (10-30s+ between points during
+  // steady effort). A fixed pause threshold breaks one or the other, so
+  // instead: find the file's typical (median) interval, then only count a
+  // gap as a real pause (stoplight, stop) if it's both a clear multiple of
+  // that typical interval AND at least 15s in absolute terms.
+  let pausedS = 0;
+  if (times.length >= 3) {
+    const gaps = [];
+    for (let i = 1; i < times.length; i++) gaps.push((times[i] - times[i - 1]) / 1000);
+    const sortedGaps = [...gaps].sort((a, b) => a - b);
+    const median = sortedGaps[Math.floor(sortedGaps.length / 2)] || 1;
+    const pauseThreshold = Math.max(median * 4, 15);
+    gaps.forEach((gap) => { if (gap > pauseThreshold) pausedS += gap; });
+  }
+  const movingS = elapsedS != null ? elapsedS - pausedS : null;
+
+  const hrs = points.map((p) => p.hr).filter((h) => h != null && !isNaN(h));
+  const avgHR = hrs.length ? Math.round(hrs.reduce((a, b) => a + b, 0) / hrs.length) : null;
+
+  // Local date (uses the browser's own timezone — correct for whoever is
+  // actually running the app, and avoids a UTC-date-rollover bug where an
+  // evening run just after midnight UTC gets misdated a day later).
+  const localDate = times.length ? formatLocalDate(times[0]) : null;
+
+  return {
+    date: localDate,
+    type: 'Easy',
+    distanceKm: Math.round((totalM / 1000) * 1000) / 1000,
+    totalSeconds: movingS != null ? Math.max(1, Math.round(movingS)) : null,
+    avgHR,
+    rpe: 5,
+    notes: name || '',
+  };
+}
+function formatLocalDate(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+/* ======================================================================
+   Export / Import
+   ====================================================================== */
+function downloadTextFile(filename, text, mime) {
+  const blob = new Blob([text], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+function exportJSON(sessions, config) {
+  downloadTextFile(`run-log-${todayISO()}.json`, JSON.stringify({ exportedAt: new Date().toISOString(), config, sessions }, null, 2), 'application/json');
+}
+function exportCSV(sessions) {
+  const rows = sessions.map((s) => ({
+    date: s.date, type: s.type, distance_km: Number(s.distanceKm.toFixed(3)),
+    total_seconds: s.totalSeconds, total_time: formatDuration(s.totalSeconds),
+    avg_hr: s.avgHR ?? '', rpe: s.rpe, notes: s.notes || '',
+  }));
+  downloadTextFile(`run-log-${todayISO()}.csv`, Papa.unparse(rows), 'text/csv');
+}
+function pick(row, ...keys) {
+  const lower = {};
+  Object.keys(row).forEach((k) => (lower[k.trim().toLowerCase()] = row[k]));
+  for (const k of keys) {
+    const v = lower[k.toLowerCase()];
+    if (v !== undefined && v !== null && String(v).trim() !== '') return v;
+  }
+  return undefined;
+}
+function normalizeTypeGuess(raw) {
+  if (!raw) return 'Easy';
+  const s = String(raw).trim().toLowerCase();
+  if (s.includes('tempo')) return 'Tempo';
+  if (s.includes('interval') || s.includes('speed') || s.includes('track')) return 'Interval';
+  if (s.includes('long')) return 'Long';
+  if (s.includes('race')) return 'RacePace';
+  if (s.includes('brick')) return 'Brick';
+  if (s.includes('recover')) return 'Recovery';
+  if (s.includes('easy') || s.includes('run') || s.includes('jog')) return 'Easy';
+  return TYPE_ORDER.includes(raw) ? raw : 'Easy';
+}
+function coerceSession(row, defaultUnit) {
+  const dateRaw = pick(row, 'date', 'start date', 'activity date', 'workout date');
+  let date = null;
+  if (dateRaw) { const d = new Date(dateRaw); if (!isNaN(d.getTime())) date = formatLocalDate(d); }
+  if (!date) return null;
+  const type = normalizeTypeGuess(pick(row, 'type', 'session type', 'activity type', 'workout type'));
+  let distanceKm = pick(row, 'distancekm', 'distance_km');
+  if (distanceKm !== undefined) distanceKm = Number(distanceKm);
+  else {
+    const distRaw = pick(row, 'distance', 'distance (km)', 'distance (mi)', 'miles', 'km');
+    const unitRaw = (pick(row, 'unit', 'distance unit') || '').toString().toLowerCase();
+    const num = Number(distRaw);
+    if (!isNaN(num) && num > 0) {
+      const isMiles = unitRaw.includes('mi') || (!unitRaw && defaultUnit === 'mi');
+      distanceKm = isMiles ? num * KM_PER_MI : num;
+    }
+  }
+  if (!distanceKm || isNaN(distanceKm) || distanceKm <= 0) return null;
+  let totalSeconds = pick(row, 'totalseconds', 'total_seconds', 'duration_seconds');
+  if (totalSeconds !== undefined) totalSeconds = Number(totalSeconds);
+  else {
+    const durRaw = pick(row, 'total_time', 'duration', 'time', 'elapsed time', 'moving time');
+    totalSeconds = parseDuration(String(durRaw ?? ''));
+  }
+  if (!totalSeconds || isNaN(totalSeconds) || totalSeconds <= 0) return null;
+  const hrRaw = pick(row, 'avg_hr', 'avghr', 'average heart rate', 'heart rate', 'avg hr');
+  const avgHR = hrRaw !== undefined && !isNaN(Number(hrRaw)) ? Number(hrRaw) : null;
+  const rpeRaw = pick(row, 'rpe', 'perceived effort', 'effort');
+  const rpe = rpeRaw !== undefined && !isNaN(Number(rpeRaw)) ? Math.min(10, Math.max(1, Number(rpeRaw))) : 5;
+  const notes = pick(row, 'notes', 'note', 'description', 'comment') || '';
+  return { id: uid(), date, type, distanceKm, totalSeconds, avgHR, rpe, notes: String(notes) };
+}
+function parseImportedText(text, defaultUnit) {
+  const trimmed = text.trim();
+  const result = { sessions: [], config: null, skipped: 0 };
+  if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+    try {
+      const data = JSON.parse(trimmed);
+      const rawSessions = Array.isArray(data) ? data : Array.isArray(data.sessions) ? data.sessions : null;
+      if (rawSessions) {
+        rawSessions.forEach((r) => {
+          const c = coerceSession(r, defaultUnit);
+          if (c) result.sessions.push(c); else result.skipped++;
+        });
+        if (data.config && typeof data.config === 'object') result.config = data.config;
+        return result;
+      }
+    } catch { /* fall through to CSV */ }
+  }
+  const parsed = Papa.parse(trimmed, { header: true, skipEmptyLines: true });
+  (parsed.data || []).forEach((row) => {
+    const c = coerceSession(row, defaultUnit);
+    if (c) result.sessions.push(c); else result.skipped++;
+  });
+  return result;
+}
+
+/* ======================================================================
+   AI Coach — direct browser call to Anthropic's API using the user's own key
+   ====================================================================== */
+async function callClaude(system, messages) {
+  const { data, error } = await supabaseClient.functions.invoke('ai-coach', {
+    body: { system, messages },
+  });
+  if (error) throw new Error(error.message || 'Could not reach the AI coach.');
+  if (data?.error) throw new Error(typeof data.error === 'string' ? data.error : data.error.message || 'AI coach error');
+  return (data.content || []).map((b) => (b.type === 'text' ? b.text : '')).filter(Boolean).join('\n') || 'No response.';
+}
+
+function isoWeekKey(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  const day = (d.getDay() + 6) % 7;
+  d.setDate(d.getDate() - day);
+  return d.toISOString().slice(0, 10);
+}
+function buildTrainingSummary(sessions, config, unit) {
+  const unitLabel = unit === 'km' ? 'km' : 'mi';
+  const toUnit = (km) => (unit === 'km' ? km : km / KM_PER_MI);
+  const sorted = [...sessions].sort((a, b) => (a.date < b.date ? -1 : 1));
+  const phase = getCurrentPhase(config);
+  const daysToRace = daysBetween(todayISO(), config.raceDate);
+  const lines = [];
+  lines.push(`Athlete is training for: ${config.raceName}, race date ${config.raceDate} (${daysToRace} days away).`);
+  lines.push(`Goal race distance (run leg): ${toUnit(config.raceDistanceKm || HALF_MARATHON_KM).toFixed(1)} ${unitLabel}.`);
+  lines.push(`Current training phase: ${phase.key}.`);
+  lines.push(`Distance unit preference: ${unitLabel}.`);
+  lines.push(`Experience level: ${config.experienceLevel || 'Intermediate'}.`);
+  const capKmNow = effectiveWeeklyCapKm(config, todayISO());
+  const evidenceLongRun = toUnit(evidenceLongRunTargetKm(config.raceDistanceKm));
+  lines.push(`Current weekly volume target: ~${Math.round(toUnit(capKmNow))} ${unitLabel}/week (ramps <=10%/week through Base/Build, holds at peak, tapers to half of peak by race day).`);
+  lines.push(`REFERENCE RESEARCH: Fokkema et al. 2020 (Scand J Med Sci Sports) found weekly training volume (>32 km/wk for half-marathon, >65 km/wk for marathon) and longest training run (>21 km for half-marathon, >=25 km for marathon) were both associated with meaningfully faster finish times, with NO associated increase in injury risk. Doherty et al. 2020 (J Sci Med Sport meta-analysis, 137 marathon cohorts) corroborates this direction of effect. This athlete's goal distance places their evidence-based long-run target at roughly ${Math.round(evidenceLongRun)} ${unitLabel}. Use these as reference points, not rigid rules — respect the athlete's own recovery signals (RPE, HR trends) too.`);
+  lines.push(`Total logged sessions: ${sorted.length}.`);
+  if (sorted.length === 0) { lines.push('No sessions logged yet.'); return lines.join('\n'); }
+  const byWeek = {};
+  sorted.forEach((s) => {
+    const wk = isoWeekKey(s.date);
+    if (!byWeek[wk]) byWeek[wk] = { distance: 0, count: 0, hrSum: 0, hrN: 0, rpeSum: 0 };
+    byWeek[wk].distance += toUnit(s.distanceKm); byWeek[wk].count += 1; byWeek[wk].rpeSum += s.rpe;
+    if (s.avgHR) { byWeek[wk].hrSum += s.avgHR; byWeek[wk].hrN += 1; }
+  });
+  const weekKeys = Object.keys(byWeek).sort().slice(-8);
+  lines.push('\nWeekly summary (most recent last):');
+  weekKeys.forEach((wk) => {
+    const w = byWeek[wk];
+    const avgHR = w.hrN ? Math.round(w.hrSum / w.hrN) : null;
+    lines.push(`Week of ${wk}: ${w.count} session(s), ${w.distance.toFixed(1)} ${unitLabel} total, avg RPE ${(w.rpeSum / w.count).toFixed(1)}${avgHR ? `, avg HR ${avgHR} bpm` : ''}.`);
+  });
+  lines.push('\nMost recent 15 sessions (oldest to newest):');
+  sorted.slice(-15).forEach((s) => {
+    const pace = s.totalSeconds / toUnit(s.distanceKm);
+    lines.push(`${s.date} | ${TYPE_META[s.type]?.label || s.type} | ${toUnit(s.distanceKm).toFixed(2)} ${unitLabel} | pace ${formatDuration(pace)}/${unitLabel} | ${s.avgHR ? s.avgHR + ' bpm' : 'no HR'} | RPE ${s.rpe}${s.notes ? ' | notes: ' + s.notes : ''}`);
+  });
+  return lines.join('\n');
+}
+
+/* ======================================================================
+   Application state
+   ====================================================================== */
+let state = {
+  sessions: [],
+  config: { ...DEFAULT_CONFIG },
+  showForm: false,
+  editingId: null,
+  editingConfig: false,
+  chartType: 'Easy',
+  statsPeriod: 'month',
+  page: 'training', // 'training' | 'leaderboard'
+  profile: null, // { display_name, show_on_leaderboard }
+  leaderboard: null,
+  leaderboardPeriod: 'week',
+  leaderboardLoading: false,
+  leaderboardError: '',
+  form: { date: todayISO(), type: 'Easy', distance: '', duration: '', hr: '', rpe: 5, notes: '' },
+  formError: '',
+  chatMessages: [],
+  chatLoading: false,
+  chatError: '',
+  aiNote: '',
+  aiNoteLoading: false,
+  weeklyPlan: null,
+  weeklyPlanLoading: false,
+  weeklyPlanError: '',
+  weeklyExpanded: false,
+  paceChart: null, hrChart: null, rpeChart: null, efChart: null,
+};
+
+// Fetches sessions + config from Supabase and initializes state after login.
+async function loadStateForCurrentUser() {
+  const [sessions, storedConfig] = await Promise.all([fetchSessionsFromDB(), fetchConfigFromDB()]);
+  let c = storedConfig ? { ...DEFAULT_CONFIG, ...storedConfig } : { ...DEFAULT_CONFIG };
+  let needsSave = false;
+  if (!c.weeklyVolumeCapKm) { c.weeklyVolumeCapKm = experienceWeeklyCapKm(c.experienceLevel, c.raceDistanceKm); needsSave = true; }
+  if (!c.programStartDate) {
+    const earliest = sessions.reduce((min, s) => (!min || s.date < min ? s.date : min), null);
+    c.programStartDate = earliest && earliest < todayISO() ? earliest : todayISO();
+    needsSave = true;
+  }
+  if (needsSave) await saveConfigDB(c);
+  state.sessions = sessions;
+  state.config = c;
+}
+
+// Local-first: update the in-memory array immediately for a snappy UI, then
+// sync to Supabase in the background. Errors are surfaced via toast rather
+// than blocking the UI, since re-fetching on every keystroke would feel slow.
+function persistConfig(next) {
+  state.config = next;
+  saveConfigDB(next).catch((e) => toast('Could not save settings: ' + e.message));
+}
+
+function toast(msg, ms = 5000) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.display = 'block';
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { el.style.display = 'none'; }, ms);
+}
+
+function paceSecPerUnit(s, unit) {
+  const distUnit = unit === 'km' ? s.distanceKm : s.distanceKm / KM_PER_MI;
+  return s.totalSeconds / distUnit;
+}
+
+function el(tag, attrs = {}, children = []) {
+  const node = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === 'style' && typeof v === 'object') Object.assign(node.style, v);
+    else if (k.startsWith('on') && typeof v === 'function') node.addEventListener(k.slice(2).toLowerCase(), v);
+    else if (k === 'html') node.innerHTML = v;
+    else if (v !== false && v != null) node.setAttribute(k, v);
+  }
+  (Array.isArray(children) ? children : [children]).forEach((c) => {
+    if (c == null || c === false) return;
+    node.appendChild(typeof c === 'string' || typeof c === 'number' ? document.createTextNode(c) : c);
+  });
+  return node;
+}
+
+/* ======================================================================
+   Rendering: header, course timeline
+   ====================================================================== */
+function renderHeader() {
+  const config = state.config;
+  const phase = getCurrentPhase(config);
+  const daysToRace = daysBetween(todayISO(), config.raceDate);
+  const raceDateStr = new Date(config.raceDate + 'T00:00:00').toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+  const unit = config.unit;
+
+  return `
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap;">
+      <div>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span style="font-size:12px; font-weight:600; letter-spacing:0.1em; color:var(--text-mid); text-transform:uppercase;">
+            ${escapeHtml(config.raceName)} &middot; ${raceDateStr}
+          </span>
+          <button class="btn-icon" id="editConfigBtn" title="Edit race & settings">${ICON_PENCIL}</button>
+        </div>
+        <div style="display:flex; align-items:baseline; gap:12px; margin-top:4px; flex-wrap:wrap;">
+          <span class="display" style="font-weight:800; font-size:56px; line-height:1; color:var(--lime);">${Math.max(0, daysToRace)}</span>
+          <span class="display" style="font-weight:700; font-size:20px; color:var(--text-mid); letter-spacing:0.05em;">DAYS TO RACE</span>
+          <span class="pill" style="color:${phase.color}; background:${phase.color}1A; border:1px solid ${phase.color}40;">
+            <span class="pill-dot" style="background:${phase.color};"></span>${phase.key} phase
+          </span>
+        </div>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+        <div style="display:flex; border:1px solid var(--border); border-radius:8px; overflow:hidden;">
+          <button id="unitKm" class="unit-btn" style="padding:6px 12px; font-size:12px; font-weight:600; ${unit === 'km' ? 'background:var(--lime); color:var(--bg);' : 'color:var(--text-mid);'}">km</button>
+          <button id="unitMi" class="unit-btn" style="padding:6px 12px; font-size:12px; font-weight:600; ${unit === 'mi' ? 'background:var(--lime); color:var(--bg);' : 'color:var(--text-mid);'}">mi</button>
+        </div>
+        <button class="btn btn-ghost" id="exportJsonBtn">${ICON_DOWNLOAD} Export</button>
+        <button class="btn btn-ghost" id="exportCsvBtn">CSV</button>
+        <button class="btn btn-ghost" id="importBtn">${ICON_UPLOAD} Import</button>
+        <button class="btn btn-ghost" id="importGpxBtn">Import GPX</button>
+        <input type="file" id="fileInput" accept=".json,.csv,text/csv,application/json" style="display:none;" />
+        <input type="file" id="gpxFileInput" accept=".gpx" style="display:none;" />
+      </div>
+    </div>
+    <div id="editConfigPanel"></div>
+  `;
+}
+
+function renderEditConfigPanel() {
+  if (!state.editingConfig) return '';
+  const c = state.config;
+  const unit = c.unit;
+  const unitLabel = unit === 'km' ? 'km' : 'mi';
+  const phase = getCurrentPhase(c);
+  const currentCap = Math.round(unit === 'km' ? effectiveWeeklyCapKm(c, todayISO()) : effectiveWeeklyCapKm(c, todayISO()) / KM_PER_MI);
+  return `
+    <div class="card" style="margin-top:14px; display:flex; gap:14px; flex-wrap:wrap;">
+      <div class="field">
+        <span class="field-label">Race name</span>
+        <input id="cfgRaceName" value="${escapeAttr(c.raceName)}" />
+      </div>
+      <div class="field">
+        <span class="field-label">Race date</span>
+        <input type="date" id="cfgRaceDate" value="${c.raceDate}" />
+      </div>
+      <div class="field">
+        <span class="field-label">Training block start</span>
+        <input type="date" id="cfgStartDate" value="${c.programStartDate || todayISO()}" />
+      </div>
+      <div class="field">
+        <span class="field-label">Goal race distance (${unitLabel})</span>
+        <input id="cfgRaceDistance" inputmode="decimal" value="${(unit === 'km' ? c.raceDistanceKm : c.raceDistanceKm / KM_PER_MI).toFixed(1)}" />
+      </div>
+      <div class="field">
+        <span class="field-label">Experience level</span>
+        <select id="cfgExperience">
+          ${EXPERIENCE_LEVELS.map((lvl) => `<option value="${lvl}" ${c.experienceLevel === lvl ? 'selected' : ''}>${lvl}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field">
+        <span class="field-label">Peak-phase weekly volume (${unitLabel})</span>
+        <span class="field-hint" style="display:block; margin-bottom:2px;">Ramps &le;10%/wk, tapers to half by race &mdash; currently ~${currentCap} ${unitLabel}/wk in ${phase.key}</span>
+        <input id="cfgWeeklyCap" inputmode="numeric" value="${Math.round(unit === 'km' ? c.weeklyVolumeCapKm : c.weeklyVolumeCapKm / KM_PER_MI)}" />
+      </div>
+      <div style="align-self:flex-end; display:flex; gap:10px;">
+        <button class="btn btn-primary" id="saveConfigBtn">Save</button>
+        <button class="btn btn-ghost" id="cancelConfigBtn">Cancel</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderCourseTimeline() {
+  const config = state.config;
+  const { start, end } = getProgramWindow(config);
+  const totalDays = daysBetween(start, end);
+  const elapsedFrac = getElapsedFraction(config);
+  const width = 1000, height = 92, trackY = 54, trackH = 14;
+  let prevEnd = 0;
+  const segments = PHASES.map((p) => { const x0 = prevEnd * width, x1 = p.end * width; prevEnd = p.end; return { ...p, x0, x1 }; });
+  const sorted = [...state.sessions].sort((a, b) => (a.date < b.date ? -1 : 1));
+  const dots = sorted.map((s) => {
+    const d = daysBetween(start, s.date);
+    const frac = d / totalDays;
+    if (frac < -0.02 || frac > 1.02) return null;
+    return { x: Math.min(1, Math.max(0, frac)) * width, color: TYPE_META[s.type]?.color || COLORS.gray };
+  }).filter(Boolean);
+  const markerX = Math.min(1, elapsedFrac) * width;
+  const PAD = 34;
+  const labelAnchor = markerX < PAD ? 'start' : markerX > width - PAD ? 'end' : 'middle';
+  const labelX = labelAnchor === 'start' ? markerX - 4 : labelAnchor === 'end' ? markerX + 4 : markerX;
+
+  const segsSvg = segments.map((seg) => `
+    <rect x="${seg.x0 + 2}" y="${trackY}" width="${Math.max(0, seg.x1 - seg.x0 - 4)}" height="${trackH}" rx="7" fill="${seg.color}" opacity="0.22" />
+    <text x="${(seg.x0 + seg.x1) / 2}" y="${trackY - 12}" text-anchor="middle" font-family="Big Shoulders Display, sans-serif" font-weight="700" font-size="16" letter-spacing="0.08em" fill="${seg.color}">${seg.key.toUpperCase()}</text>
+  `).join('');
+  const dotsSvg = dots.map((d) => `<circle cx="${d.x}" cy="${trackY + trackH + 14}" r="3.4" fill="${d.color}" opacity="0.9" />`).join('');
+  const typesPresent = Array.from(new Set(state.sessions.map((s) => s.type)));
+  const legend = TYPE_ORDER.filter((t) => typesPresent.includes(t)).map((t) =>
+    `<span style="display:flex; align-items:center; gap:5px;"><span style="width:6px;height:6px;border-radius:999px;background:${TYPE_META[t].color};"></span>${TYPE_META[t].label}</span>`
+  ).join('');
+
+  return `
+    <div class="card" style="margin-top:24px; padding:18px 16px 10px;">
+      <div style="width:100%; overflow-x:auto;">
+        <svg viewBox="${-PAD} 0 ${width + PAD * 2} ${height}" style="width:100%; min-width:480px; height:auto; display:block;">
+          ${segsSvg}
+          ${dotsSvg}
+          <line x1="${markerX}" x2="${markerX}" y1="${trackY - 6}" y2="${trackY + trackH + 26}" stroke="var(--text-hi)" stroke-width="2" />
+          <polygon points="${markerX - 6},${trackY - 14} ${markerX + 6},${trackY - 14} ${markerX},${trackY - 4}" fill="#EDF1F4" />
+          <text x="${labelX}" y="${trackY - 20}" text-anchor="${labelAnchor}" font-family="Inter, sans-serif" font-weight="600" font-size="11" fill="#EDF1F4">TODAY</text>
+        </svg>
+      </div>
+      <div style="display:flex; gap:14px; flex-wrap:wrap; margin-top:4px; font-size:11px; color:var(--text-mid);">${legend}</div>
+    </div>
+  `;
+}
+
+/* ======================================================================
+   Rendering: suggestion card, weekly plan, stat cards
+   ====================================================================== */
+function getSuggestedRun() {
+  const base = computeSuggestedRun(state.sessions, state.config, state.config.unit);
+  return enrichSuggestion(base, state.sessions, state.config, state.config.unit);
+}
+
+function renderSuggestionCard() {
+  const s = getSuggestedRun();
+  const color = TYPE_META[s.type]?.color || COLORS.textHi;
+  return `
+    <div class="card" style="margin-top:14px; background:linear-gradient(135deg, var(--surface), var(--surface-raised)); border:1px solid ${color}40;">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
+        <div>
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <span style="font-size:11px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-mid);">Suggested next run</span>
+            ${s.dayLabel ? `<span class="pill" style="color:var(--amber); background:var(--amber)1A; border:1px solid var(--amber)40;"><span class="pill-dot" style="background:var(--amber);"></span>${s.dayLabel}</span>` : ''}
+          </div>
+          <div style="display:flex; align-items:baseline; gap:10px; margin-top:6px; flex-wrap:wrap;">
+            <span class="display" style="font-weight:800; font-size:28px; color:${color};">${TYPE_META[s.type]?.label || s.type}</span>
+            <span class="mono" style="font-size:15px; color:var(--text-hi);">${escapeHtml(s.distanceLabel)}</span>
+          </div>
+          <div style="font-size:12px; color:var(--text-mid); margin-top:2px;">${escapeHtml(s.effortLabel)}</div>
+          ${s.paceLabel ? `<div style="font-size:12px; color:var(--text-mid); margin-top:4px; display:flex; align-items:center; gap:6px;">
+            <span class="mono" style="color:var(--lime); font-weight:600;">${escapeHtml(s.paceLabel)}</span>
+            ${s.paceNote ? `<span style="color:var(--text-low);">(${escapeHtml(s.paceNote)})</span>` : ''}
+          </div>` : ''}
+        </div>
+        <button class="btn btn-ghost" id="elaborateBtn" ${state.aiNoteLoading ? 'disabled' : ''}>${state.aiNoteLoading ? 'Thinking…' : 'Ask the AI coach why'}</button>
+      </div>
+      <p style="font-size:13px; color:var(--text-mid); margin-top:12px; margin-bottom:0; line-height:1.5;">${escapeHtml(s.rationale)}</p>
+      ${state.aiNote ? `<div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--border); font-size:13px; color:var(--text-hi); line-height:1.6; white-space:pre-wrap;">${escapeHtml(state.aiNote)}</div>` : ''}
+    </div>
+  `;
+}
+
+function renderWeeklyPlanCard() {
+  const plan = state.weeklyPlan;
+  const chips = plan && !state.weeklyExpanded ? plan.map((d) => {
+    const isDone = d.type === 'Done', isRest = d.type === 'Rest';
+    const color = isRest || isDone ? COLORS.textLow : (TYPE_META[d.type]?.color || COLORS.textLow);
+    const wk = new Date(d.date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short' });
+    return `<span title="${d.date}: ${isDone ? 'Already done' : isRest ? 'Rest day' : (TYPE_META[d.type]?.label || d.type)}"
+      style="display:inline-flex; align-items:center; gap:4px; font-size:11px; color:${isDone ? 'var(--text-low)' : 'var(--text-mid)'};
+      background:${color}15; border:1px solid ${color}35; border-radius:999px; padding:3px 8px; opacity:${isDone ? 0.65 : 1}; text-decoration:${isDone ? 'line-through' : 'none'};">
+      ${isDone ? ICON_CHECK : `<span style="width:5px;height:5px;border-radius:999px;background:${color};"></span>`} ${wk}
+    </span>`;
+  }).join('') : '';
+
+  const expanded = plan && state.weeklyExpanded ? plan.map((d, i) => {
+    const isRest = d.type === 'Rest', isDone = d.type === 'Done';
+    const color = isRest || isDone ? COLORS.textLow : (TYPE_META[d.type]?.color || COLORS.textLow);
+    const dateLabel = new Date(d.date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+    return `<div style="display:flex; gap:12px; align-items:baseline; ${i > 0 ? 'border-top:1px solid var(--border-soft); padding-top:8px;' : ''} opacity:${isDone ? 0.7 : 1};">
+      <div style="width:84px; flex-shrink:0; font-size:12px; color:var(--text-mid);">${dateLabel}</div>
+      ${isDone ? `<span style="flex-shrink:0;">${ICON_CHECK}</span>` : `<div style="width:8px;height:8px;border-radius:999px;background:${color};flex-shrink:0;"></div>`}
+      <div style="min-width:0;">
+        <div style="font-size:13px; font-weight:600; color:var(--text-hi);">${isRest ? 'Rest day' : isDone ? 'Done' : (TYPE_META[d.type]?.label || d.type)}${d.distanceLabel ? ' &middot; ' + escapeHtml(d.distanceLabel) : ''}</div>
+        <div style="font-size:12px; color:var(--text-mid);">${escapeHtml(d.effortLabel || '')}${d.effortLabel && d.note ? ' — ' : ''}${escapeHtml(d.note || '')}</div>
+      </div>
+    </div>`;
+  }).join('') : '';
+
+  return `
+    <div class="card" style="margin-top:14px; padding:14px 18px;">
+      <div id="weeklyHeaderRow" style="display:flex; justify-content:space-between; align-items:center; gap:12px; cursor:${plan ? 'pointer' : 'default'};">
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; min-width:0;">
+          <span style="font-size:11px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-mid);">Next 7 days</span>
+          ${plan && !state.weeklyExpanded ? `<div style="display:flex; gap:5px; flex-wrap:wrap;">${chips}</div>` : ''}
+        </div>
+        <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
+          ${!plan ? `<button class="btn btn-ghost" id="generatePlanBtn" ${state.weeklyPlanLoading ? 'disabled' : ''}>${state.weeklyPlanLoading ? 'Planning…' : 'Generate plan'}</button>` : ''}
+          ${plan ? `<button class="btn-icon" id="regeneratePlanBtn" title="Regenerate">${ICON_REFRESH}</button>` : ''}
+          ${plan ? `<span style="color:var(--text-mid); transform:${state.weeklyExpanded ? 'rotate(180deg)' : 'none'}; display:inline-block;">&#9660;</span>` : ''}
+        </div>
+      </div>
+      ${state.weeklyPlanError ? `<div style="color:var(--coral); font-size:12px; margin-top:10px;">${escapeHtml(state.weeklyPlanError)}</div>` : ''}
+      ${plan && state.weeklyExpanded ? `<div style="margin-top:14px; display:flex; flex-direction:column; gap:8px;">${expanded}</div>` : ''}
+    </div>
+  `;
+}
+
+function mondayOfWeek(dateObj, weekOffset) {
+  const d = new Date(dateObj);
+  d.setDate(d.getDate() + weekOffset * 7);
+  const day = (d.getDay() + 6) % 7; // 0 = Monday
+  d.setDate(d.getDate() - day);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+function renderStatCards() {
+  const config = state.config, unit = config.unit, unitLabel = unit === 'km' ? 'km' : 'mi';
+  const sessions = state.sessions;
+  const period = state.statsPeriod || 'month';
+
+  function statsForMonth(offset) {
+    const now = new Date();
+    const target = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+    const y = target.getFullYear(), m = target.getMonth();
+    return sessions.filter((s) => { const d = new Date(s.date + 'T00:00:00'); return d.getFullYear() === y && d.getMonth() === m; });
+  }
+  function statsForWeek(offset) {
+    const monday = mondayOfWeek(new Date(), offset);
+    const start = formatLocalDate(monday);
+    const end = addDays(start, 6);
+    return sessions.filter((s) => s.date >= start && s.date <= end);
+  }
+  function summarize(list) {
+    if (!list.length) return null;
+    const avgPace = list.reduce((acc, s) => acc + paceSecPerUnit(s, unit), 0) / list.length;
+    const withHR = list.filter((s) => s.avgHR);
+    const avgHR = withHR.length ? withHR.reduce((a, s) => a + s.avgHR, 0) / withHR.length : null;
+    const avgRPE = list.reduce((a, s) => a + s.rpe, 0) / list.length;
+    const totalDist = list.reduce((a, s) => a + (unit === 'km' ? s.distanceKm : s.distanceKm / KM_PER_MI), 0);
+    return { avgPace, avgHR, avgRPE, totalDist, count: list.length };
+  }
+  const statsFor = period === 'week' ? statsForWeek : statsForMonth;
+  const cur = summarize(statsFor(0)), prev = summarize(statsFor(-1));
+  const paceDelta = cur && prev ? cur.avgPace - prev.avgPace : null;
+  const periodLabel = period === 'week' ? 'wk' : 'mo';
+  const compareLabel = period === 'week' ? 'last week' : 'last month';
+
+  function card(label, value, sub, accent) {
+    return `<div class="stat-card">
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+        <span style="width:8px;height:8px;border-radius:999px;background:${accent};"></span>
+        <span style="font-size:11px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; color:var(--text-mid);">${label}</span>
+      </div>
+      <div class="mono" style="font-size:26px; font-weight:600; color:var(--text-hi); line-height:1;">${value}</div>
+      ${sub ? `<div style="font-size:12px; color:var(--text-mid); margin-top:6px;">${sub}</div>` : ''}
+    </div>`;
+  }
+  return `
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px; flex-wrap:wrap; gap:10px;">
+      <span style="font-size:11px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-mid);">Your averages</span>
+      <div style="display:flex; border:1px solid var(--border); border-radius:8px; overflow:hidden;">
+        <button id="statsPeriodWeek" style="padding:6px 12px; font-size:12px; font-weight:600; ${period === 'week' ? 'background:var(--lime); color:var(--bg);' : 'color:var(--text-mid);'}">Weekly</button>
+        <button id="statsPeriodMonth" style="padding:6px 12px; font-size:12px; font-weight:600; ${period === 'month' ? 'background:var(--lime); color:var(--bg);' : 'color:var(--text-mid);'}">Monthly</button>
+      </div>
+    </div>
+    <div class="stat-row" style="margin-top:10px;">
+    ${card(`Avg pace /${unitLabel} (${periodLabel})`, cur ? formatDuration(cur.avgPace) : '--:--', paceDelta != null ? `${paceDelta <= 0 ? '&#9660;' : '&#9650;'} ${formatDuration(Math.abs(paceDelta))} vs ${compareLabel}` : 'Not enough data yet', COLORS.lime)}
+    ${card(`Avg HR (${periodLabel})`, cur?.avgHR ? Math.round(cur.avgHR) : '--', cur?.avgHR ? 'bpm average' : 'No HR logged yet', COLORS.cyan)}
+    ${card(`Avg RPE (${periodLabel})`, cur ? cur.avgRPE.toFixed(1) : '--', 'Borg-style, 1&ndash;10 scale', COLORS.coral)}
+    ${card(`Distance (${periodLabel})`, cur ? `${cur.totalDist.toFixed(1)} ${unitLabel}` : '0', `${cur?.count || 0} sessions logged`, COLORS.violet)}
+  </div>`;
+}
+
+/* ======================================================================
+   Rendering: add/edit session form
+   ====================================================================== */
+function renderAddSessionSection() {
+  if (!state.showForm) {
+    return `<div style="margin-top:24px;"><button class="btn btn-primary" id="openFormBtn">+ Log a session</button></div>`;
+  }
+  const f = state.form, unit = state.config.unit, unitLabel = unit === 'km' ? 'km' : 'mi';
+  return `
+    <div style="margin-top:24px;">
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+          <span class="display" style="font-weight:700; font-size:20px;">${state.editingId ? 'Edit session' : 'New session'}</span>
+          <button class="btn-icon" id="closeFormBtn">&times;</button>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:14px;">
+          <div class="field"><span class="field-label">Date</span><input type="date" id="formDate" value="${f.date}" /></div>
+          <div class="field"><span class="field-label">Session type</span>
+            <select id="formType">${TYPE_ORDER.map((t) => `<option value="${t}" ${f.type === t ? 'selected' : ''}>${TYPE_META[t].label}</option>`).join('')}</select>
+          </div>
+          <div class="field"><span class="field-label">Distance (${unitLabel})</span><input id="formDistance" placeholder="10" inputmode="decimal" value="${escapeAttr(f.distance)}" /></div>
+          <div class="field"><span class="field-label">Total time</span><input id="formDuration" placeholder="52:30" value="${escapeAttr(f.duration)}" /><span class="field-hint">MM:SS or H:MM:SS</span></div>
+          <div class="field"><span class="field-label">Avg heart rate</span><input id="formHr" placeholder="152" inputmode="numeric" value="${escapeAttr(f.hr)}" /><span class="field-hint">optional, bpm</span></div>
+          <div class="field"><span class="field-label">RPE: <span id="rpeVal">${f.rpe}</span> / 10</span><input type="range" id="formRpe" min="1" max="10" value="${f.rpe}" style="accent-color:var(--coral); margin-top:8px;" /></div>
+        </div>
+        <div style="margin-top:14px;">
+          <div class="field"><span class="field-label">Notes</span><textarea id="formNotes" style="min-height:60px; font-family:'Inter',sans-serif;">${escapeHtml(f.notes)}</textarea><span class="field-hint">optional &mdash; route, shoes, conditions, how it felt</span></div>
+        </div>
+        ${state.formError ? `<div style="margin-top:12px; color:var(--coral); font-size:13px;">${escapeHtml(state.formError)}</div>` : ''}
+        <div style="margin-top:16px; display:flex; gap:10px;">
+          <button class="btn btn-primary" id="saveSessionBtn">${state.editingId ? 'Save changes' : 'Save session'}</button>
+          ${state.editingId ? `<button class="btn btn-ghost" id="cancelEditBtn">Cancel</button>` : ''}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ======================================================================
+   Rendering: history + charts grid
+   ====================================================================== */
+function renderHistoryAndCharts() {
+  const unit = state.config.unit, unitLabel = unit === 'km' ? 'km' : 'mi';
+  const sorted = [...state.sessions].sort((a, b) => (a.date < b.date ? -1 : 1));
+  const rows = [...sorted].reverse().map((s) => {
+    const dist = unit === 'km' ? s.distanceKm : s.distanceKm / KM_PER_MI;
+    return `<div class="session-row">
+      <div class="type-dot" style="background:${TYPE_META[s.type]?.color};"></div>
+      <div style="flex:1; min-width:0;">
+        <div style="font-size:13px; font-weight:600; display:flex; gap:8px; flex-wrap:wrap; align-items:baseline;">
+          <span>${TYPE_META[s.type]?.label}</span><span style="color:var(--text-mid); font-weight:400; font-size:12px;">${fmtDate(s.date)}</span>
+        </div>
+        <div class="mono" style="font-size:12px; color:var(--text-mid); margin-top:3px; display:flex; gap:12px; flex-wrap:wrap;">
+          <span>${dist.toFixed(2)} ${unitLabel}</span><span>${formatDuration(paceSecPerUnit(s, unit))}/${unitLabel}</span>
+          ${s.avgHR ? `<span>${s.avgHR} bpm</span>` : ''}<span>RPE ${s.rpe}</span>
+        </div>
+        ${s.notes ? `<div style="font-size:12px; color:var(--text-low); margin-top:3px;">${escapeHtml(s.notes)}</div>` : ''}
+      </div>
+      <div style="display:flex; gap:4px; flex-shrink:0;">
+        <button class="btn-icon edit-session-btn" data-id="${s.id}" title="Edit">${ICON_PENCIL}</button>
+        <button class="btn-icon delete-session-btn" data-id="${s.id}" title="Delete">${ICON_TRASH}</button>
+      </div>
+    </div>`;
+  }).join('') || `<div style="color:var(--text-mid); font-size:13px; padding:20px 0;">No sessions yet. Log your first run above to start building your history.</div>`;
+
+  const typesPresent = TYPE_ORDER.filter((t) => state.sessions.some((s) => s.type === t));
+
+  return `
+    <div class="grid-2" style="margin-top:28px;">
+      <div>
+        <div class="section-title">Session history</div>
+        <div style="display:flex; flex-direction:column; gap:8px; max-height:480px; overflow-y:auto; padding-right:4px;">${rows}</div>
+      </div>
+      <div>
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+          <div class="section-title" style="margin-bottom:0;">Comparative trends</div>
+          <select id="chartTypeSelect">${TYPE_ORDER.map((t) => `<option value="${t}" ${state.chartType === t ? 'selected' : ''}>${TYPE_META[t].label}</option>`).join('')}</select>
+        </div>
+        <div class="card" style="margin-top:14px; padding:14px 14px 10px;">
+          <div style="font-size:12px; font-weight:600;">Pace trend &middot; ${TYPE_META[state.chartType].label}</div>
+          <canvas id="paceChartCanvas" height="160"></canvas>
+        </div>
+        <div class="card" style="margin-top:14px; padding:14px 14px 10px;">
+          <div style="font-size:12px; font-weight:600;">Heart rate trend &middot; ${TYPE_META[state.chartType].label}</div>
+          <canvas id="hrChartCanvas" height="150"></canvas>
+        </div>
+        <div class="card" style="margin-top:14px; padding:14px 14px 10px;">
+          <div style="font-size:12px; font-weight:600;">Perceived effort &middot; ${TYPE_META[state.chartType].label}</div>
+          <canvas id="rpeChartCanvas" height="140"></canvas>
+        </div>
+        <div class="card" style="margin-top:14px; padding:14px 14px 10px;">
+          <div style="font-size:12px; font-weight:600;">Running efficiency factor &middot; all types</div>
+          <div class="field-hint" style="margin-bottom:8px;">Speed per heartbeat. Rising = getting fitter at the same effort.</div>
+          <canvas id="efChartCanvas" height="150"></canvas>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ======================================================================
+   Rendering: AI chat panel
+   ====================================================================== */
+function renderChatPanel() {
+  const bubbles = state.chatMessages.map((m) => `<div class="chat-bubble ${m.role}">${escapeHtml(m.content)}</div>`).join('');
+  return `
+    <div style="margin-top:28px;">
+      <div class="section-title" style="margin-bottom:12px;">Ask about your training</div>
+      <div class="card">
+        <div id="chatMessagesEl" style="display:flex; flex-direction:column; gap:12px; max-height:360px; min-height:${state.chatMessages.length ? '120px' : '0'}; overflow-y:auto; padding-right:4px; margin-bottom:${state.chatMessages.length ? '14px' : '0'};">
+          ${!state.chatMessages.length && !state.chatLoading ? `<div style="font-size:13px; color:var(--text-low); line-height:1.5;">
+            Ask things like "how has my pace changed this month?" or "am I ready to increase my long run distance?" — answers are grounded in your actual logged sessions.
+          </div>` : ''}
+          ${bubbles}
+          ${state.chatLoading ? `<div style="font-size:13px; color:var(--text-low); font-style:italic;">Analyzing your training log…</div>` : ''}
+        </div>
+        ${state.chatError ? `<div style="color:var(--coral); font-size:12px; margin-bottom:10px;">${escapeHtml(state.chatError)}</div>` : ''}
+        <div style="display:flex; gap:8px;">
+          <input id="chatInputEl" style="flex:1; font-family:'Inter',sans-serif;" placeholder="Ask about trends, fatigue, pacing, readiness…" ${state.chatLoading ? 'disabled' : ''} />
+          <button class="btn btn-primary" id="chatSendBtn" ${state.chatLoading ? 'disabled' : ''}>Ask</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ======================================================================
+   Charts (Chart.js)
+   ====================================================================== */
+function chartBaseOptions(yFormatter) {
+  return {
+    responsive: true,
+    plugins: { legend: { display: false }, tooltip: { callbacks: yFormatter ? { label: (ctx) => yFormatter(ctx.parsed.y) } : undefined } },
+    scales: {
+      x: { ticks: { color: COLORS.textLow, font: { size: 11 } }, grid: { color: COLORS.borderSoft } },
+      y: { ticks: { color: COLORS.textLow, font: { size: 11 } }, grid: { color: COLORS.borderSoft } },
+    },
+  };
+}
+function destroyCharts() {
+  ['paceChart', 'hrChart', 'rpeChart', 'efChart'].forEach((k) => { if (state[k]) { state[k].destroy(); state[k] = null; } });
+}
+function drawCharts() {
+  destroyCharts();
+  const unit = state.config.unit;
+  const type = state.chartType;
+  const sorted = [...state.sessions].sort((a, b) => (a.date < b.date ? -1 : 1));
+  const filtered = sorted.filter((s) => s.type === type);
+
+  const paceCanvas = document.getElementById('paceChartCanvas');
+  if (paceCanvas) {
+    if (filtered.length < 2) {
+      paceCanvas.parentElement.insertAdjacentHTML('beforeend', `<div class="chart-empty" style="height:120px; display:flex; align-items:center; justify-content:center; color:var(--text-low); font-size:12px; text-align:center;">Log at least 2 "${TYPE_META[type].label}" sessions to see a pace trend.</div>`);
+    } else {
+      state.paceChart = new Chart(paceCanvas, {
+        type: 'line',
+        data: { labels: filtered.map((s) => fmtDate(s.date)), datasets: [{ data: filtered.map((s) => paceSecPerUnit(s, unit)), borderColor: COLORS.lime, backgroundColor: COLORS.lime, tension: 0.3, pointRadius: 4 }] },
+        options: { ...chartBaseOptions(formatDuration), scales: { ...chartBaseOptions().scales, y: { ...chartBaseOptions().scales.y, reverse: true, ticks: { ...chartBaseOptions().scales.y.ticks, callback: (v) => formatDuration(v) } } } },
+      });
+    }
+  }
+  const hrCanvas = document.getElementById('hrChartCanvas');
+  const hrData = filtered.filter((s) => s.avgHR);
+  if (hrCanvas) {
+    if (hrData.length < 2) {
+      hrCanvas.parentElement.insertAdjacentHTML('beforeend', `<div style="height:110px; display:flex; align-items:center; justify-content:center; color:var(--text-low); font-size:12px; text-align:center;">Log average heart rate on at least 2 sessions of this type.</div>`);
+    } else {
+      state.hrChart = new Chart(hrCanvas, { type: 'line', data: { labels: hrData.map((s) => fmtDate(s.date)), datasets: [{ data: hrData.map((s) => s.avgHR), borderColor: COLORS.cyan, backgroundColor: COLORS.cyan, tension: 0.3, pointRadius: 4 }] }, options: chartBaseOptions() });
+    }
+  }
+  const rpeCanvas = document.getElementById('rpeChartCanvas');
+  if (rpeCanvas) {
+    if (filtered.length < 2) {
+      rpeCanvas.parentElement.insertAdjacentHTML('beforeend', `<div style="height:100px; display:flex; align-items:center; justify-content:center; color:var(--text-low); font-size:12px; text-align:center;">Log RPE on at least 2 sessions of this type.</div>`);
+    } else {
+      state.rpeChart = new Chart(rpeCanvas, { type: 'line', data: { labels: filtered.map((s) => fmtDate(s.date)), datasets: [{ data: filtered.map((s) => s.rpe), borderColor: COLORS.coral, backgroundColor: COLORS.coral, tension: 0.3, pointRadius: 4 }] }, options: { ...chartBaseOptions(), scales: { ...chartBaseOptions().scales, y: { ...chartBaseOptions().scales.y, min: 0, max: 10 } } } });
+    }
+  }
+  const efCanvas = document.getElementById('efChartCanvas');
+  const efData = sorted.filter((s) => s.avgHR).map((s) => {
+    const distUnit = unit === 'km' ? s.distanceKm : s.distanceKm / KM_PER_MI;
+    const speedPerMin = (distUnit * 1000) / (s.totalSeconds / 60);
+    return { date: fmtDate(s.date), ef: Number((speedPerMin / s.avgHR).toFixed(2)) };
+  });
+  if (efCanvas) {
+    if (efData.length < 2) {
+      efCanvas.parentElement.insertAdjacentHTML('beforeend', `<div style="height:110px; display:flex; align-items:center; justify-content:center; color:var(--text-low); font-size:12px; text-align:center;">Log heart rate on at least 2 sessions (any type) to see efficiency.</div>`);
+    } else {
+      state.efChart = new Chart(efCanvas, { type: 'line', data: { labels: efData.map((d) => d.date), datasets: [{ data: efData.map((d) => d.ef), borderColor: COLORS.violet, backgroundColor: COLORS.violet, tension: 0.3, pointRadius: 4 }] }, options: chartBaseOptions() });
+    }
+  }
+}
+
+/* ======================================================================
+   Main render orchestrator
+   ====================================================================== */
+function renderPageNav() {
+  return `
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
+      <div style="display:flex; gap:8px;">
+        <button id="navTraining" class="btn ${state.page === 'training' ? 'btn-primary' : 'btn-ghost'}">Training</button>
+        <button id="navLeaderboard" class="btn ${state.page === 'leaderboard' ? 'btn-primary' : 'btn-ghost'}">Leaderboard</button>
+      </div>
+      <button class="btn btn-ghost" id="signOutBtn" title="Sign out">Sign out</button>
+    </div>
+  `;
+}
+
+function renderLeaderboardPage() {
+  const unit = state.config.unit, unitLabel = unit === 'km' ? 'km' : 'mi';
+  const profile = state.profile || { display_name: '', show_on_leaderboard: true };
+  const period = state.leaderboardPeriod || 'week';
+  const rows = state.leaderboard || [];
+
+  const rowsHtml = rows.map((r, i) => `
+    <div class="session-row" style="${r.isMe ? 'border-color:var(--lime);' : ''}">
+      <div class="mono" style="width:24px; text-align:center; font-weight:700; color:${i === 0 ? 'var(--amber)' : 'var(--text-mid)'};">${i + 1}</div>
+      <div style="flex:1; min-width:0;">
+        <div style="font-size:13px; font-weight:600;">${escapeHtml(r.name)}${r.isMe ? ' <span style="color:var(--lime); font-size:11px; font-weight:400;">(you)</span>' : ''}</div>
+        <div class="mono" style="font-size:12px; color:var(--text-mid); margin-top:3px; display:flex; gap:12px; flex-wrap:wrap;">
+          <span>${r.distance.toFixed(1)} ${unitLabel}</span>
+          <span>${r.avgPaceSec != null ? formatDuration(r.avgPaceSec) + '/' + unitLabel : '--:--'}</span>
+          <span>${r.avgHR != null ? Math.round(r.avgHR) + ' bpm' : '-- bpm'}</span>
+          <span>${r.count} session${r.count === 1 ? '' : 's'}</span>
+        </div>
+      </div>
+    </div>
+  `).join('') || (state.leaderboardLoading ? '' : `<div style="color:var(--text-mid); font-size:13px; padding:20px 0;">No one on the leaderboard yet for this period. Opt in below and log a run to appear.</div>`);
+
+  return `
+    <div style="max-width:640px; margin:0 auto;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; flex-wrap:wrap; gap:10px;">
+        <div class="section-title" style="margin-bottom:0;">Friends leaderboard</div>
+        <div style="display:flex; border:1px solid var(--border); border-radius:8px; overflow:hidden;">
+          <button id="lbPeriodWeek" style="padding:6px 12px; font-size:12px; font-weight:600; ${period === 'week' ? 'background:var(--lime); color:var(--bg);' : 'color:var(--text-mid);'}">This week</button>
+          <button id="lbPeriodMonth" style="padding:6px 12px; font-size:12px; font-weight:600; ${period === 'month' ? 'background:var(--lime); color:var(--bg);' : 'color:var(--text-mid);'}">This month</button>
+        </div>
+      </div>
+      <div class="field-hint" style="margin-top:4px;">Ranked by total distance. Only opted-in friends appear.</div>
+      ${state.leaderboardError ? `<div style="color:var(--coral); font-size:12px; margin-top:10px;">${escapeHtml(state.leaderboardError)}</div>` : ''}
+      <div style="display:flex; flex-direction:column; gap:8px; margin-top:14px;">
+        ${state.leaderboardLoading ? `<div style="color:var(--text-low); font-size:13px;">Loading…</div>` : rowsHtml}
+      </div>
+
+      <div class="card" style="margin-top:24px;">
+        <div class="section-title" style="font-size:16px;">Your leaderboard settings</div>
+        <div class="field" style="margin-bottom:10px;">
+          <span class="field-label">Display name</span>
+          <input id="lbDisplayName" style="font-family:'Inter',sans-serif;" value="${escapeAttr(profile.display_name || '')}" placeholder="What friends see" />
+        </div>
+        <label style="display:flex; align-items:flex-start; gap:8px; font-size:13px; color:var(--text-mid); margin-bottom:14px; line-height:1.4;">
+          <input type="checkbox" id="lbOptIn" style="width:auto; margin-top:2px;" ${profile.show_on_leaderboard ? 'checked' : ''} />
+          <span>Show me on the leaderboard. Only your display name, total distance, average pace, and average heart rate for the selected period are visible &mdash; never individual runs, dates, or notes.</span>
+        </label>
+        <button class="btn btn-primary" id="lbSaveBtn">Save</button>
+      </div>
+    </div>
+  `;
+}
+
+function render() {
+  const app = document.getElementById('app');
+  const nav = renderPageNav();
+  if (state.page === 'leaderboard') {
+    app.innerHTML = `${nav}${renderLeaderboardPage()}`;
+  } else {
+    app.innerHTML = `
+      ${nav}
+      ${renderHeader()}
+      ${renderCourseTimeline()}
+      ${renderSuggestionCard()}
+      ${renderWeeklyPlanCard()}
+      ${renderStatCards()}
+      ${renderAddSessionSection()}
+      ${renderHistoryAndCharts()}
+      ${renderChatPanel()}
+    `;
+  }
+  const cfgPanel = document.getElementById('editConfigPanel');
+  if (cfgPanel) cfgPanel.innerHTML = renderEditConfigPanel();
+  wireEvents();
+  if (state.page !== 'leaderboard') drawCharts();
+  const chatBox = document.getElementById('chatMessagesEl');
+  if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+/* ======================================================================
+   Session CRUD handlers
+   ====================================================================== */
+function resetForm() {
+  state.form = { date: todayISO(), type: 'Easy', distance: '', duration: '', hr: '', rpe: 5, notes: '' };
+  state.editingId = null;
+  state.formError = '';
+}
+function handleEditStart(session) {
+  const unit = state.config.unit;
+  const distDisplay = unit === 'km' ? session.distanceKm : session.distanceKm / KM_PER_MI;
+  state.form = {
+    date: session.date, type: session.type, distance: String(Number(distDisplay.toFixed(3))),
+    duration: formatDuration(session.totalSeconds), hr: session.avgHR ? String(session.avgHR) : '',
+    rpe: session.rpe, notes: session.notes || '',
+  };
+  state.editingId = session.id;
+  state.showForm = true;
+  state.formError = '';
+  render();
+}
+async function handleSaveSession() {
+  const f = state.form, unit = state.config.unit;
+  state.formError = '';
+  const distanceNum = Number(f.distance);
+  const durationSec = parseDuration(f.duration);
+  if (!f.date) { state.formError = 'Pick a date.'; render(); return; }
+  if (!distanceNum || distanceNum <= 0) { state.formError = 'Enter a distance greater than zero.'; render(); return; }
+  if (!durationSec) { state.formError = 'Enter duration as MM:SS or H:MM:SS.'; render(); return; }
+  const hrNum = f.hr ? Number(f.hr) : null;
+  if (f.hr && (isNaN(hrNum) || hrNum <= 0)) { state.formError = 'Heart rate must be a positive number.'; render(); return; }
+  const distanceKm = unit === 'km' ? distanceNum : distanceNum * KM_PER_MI;
+
+  if (state.editingId) {
+    const updated = { id: state.editingId, date: f.date, type: f.type, distanceKm, totalSeconds: durationSec, avgHR: hrNum, rpe: Number(f.rpe), notes: f.notes?.trim() || '' };
+    state.sessions = state.sessions.map((s) => (s.id === state.editingId ? updated : s)).sort((a, b) => (a.date < b.date ? -1 : 1));
+    resetForm(); state.showForm = false; render();
+    try { await updateSessionDB(updated); } catch (e) { toast('Could not save changes: ' + e.message); }
+  } else {
+    const tempId = uid();
+    const session = { id: tempId, date: f.date, type: f.type, distanceKm, totalSeconds: durationSec, avgHR: hrNum, rpe: Number(f.rpe), notes: f.notes?.trim() || '' };
+    state.sessions = [...state.sessions, session].sort((a, b) => (a.date < b.date ? -1 : 1));
+    resetForm(); state.showForm = false; render();
+    try {
+      const saved = await insertSessionDB(session);
+      state.sessions = state.sessions.map((s) => (s.id === tempId ? saved : s));
+      render();
+    } catch (e) {
+      toast('Could not save session: ' + e.message);
+      state.sessions = state.sessions.filter((s) => s.id !== tempId);
+      render();
+    }
+  }
+}
+async function handleDeleteSession(id) {
+  const prev = state.sessions;
+  state.sessions = state.sessions.filter((s) => s.id !== id);
+  render();
+  try { await deleteSessionDB(id); } catch (e) { toast('Could not delete: ' + e.message); state.sessions = prev; render(); }
+}
+
+/* ======================================================================
+   Import / Export handlers
+   ====================================================================== */
+async function handleImportText(text) {
+  const { sessions: imported, skipped } = parseImportedText(text, state.config.unit);
+  const existingKeys = new Set(state.sessions.map((s) => `${s.date}|${s.type}|${s.distanceKm.toFixed(2)}|${s.totalSeconds}`));
+  const toAdd = imported.filter((s) => {
+    const key = `${s.date}|${s.type}|${s.distanceKm.toFixed(2)}|${s.totalSeconds}`;
+    if (existingKeys.has(key)) return false;
+    existingKeys.add(key);
+    return true;
+  });
+  if (toAdd.length === 0 && skipped === 0 && imported.length === 0) { toast('No sessions found in that file.'); return; }
+  if (toAdd.length === 0 && imported.length > 0) { toast(`All ${imported.length} session(s) in that file are already logged.`); return; }
+  const dupes = imported.length - toAdd.length;
+  try {
+    const saved = await bulkInsertSessionsDB(toAdd);
+    state.sessions = [...state.sessions, ...saved].sort((a, b) => (a.date < b.date ? -1 : 1));
+    toast(`Imported ${saved.length} session${saved.length === 1 ? '' : 's'}.${dupes ? ` Skipped ${dupes} already logged.` : ''}${skipped ? ` Couldn't read ${skipped} row(s).` : ''}`);
+    render();
+  } catch (e) {
+    toast('Import failed: ' + e.message);
+  }
+}
+function handleGpxFile(file) {
+  const reader = new FileReader();
+  reader.onload = async () => {
+    try {
+      const parsed = parseGpxText(String(reader.result || ''));
+      const key = `${parsed.date}|${parsed.type}|${parsed.distanceKm.toFixed(2)}|${parsed.totalSeconds}`;
+      const exists = state.sessions.some((s) => `${s.date}|${s.type}|${s.distanceKm.toFixed(2)}|${s.totalSeconds}` === key);
+      if (exists) { toast('That run looks like a duplicate of one already logged.'); return; }
+      const saved = await insertSessionDB({ id: null, ...parsed });
+      state.sessions = [...state.sessions, saved].sort((a, b) => (a.date < b.date ? -1 : 1));
+      toast(`Imported: ${parsed.date}, ${parsed.distanceKm.toFixed(2)} km, ${formatDuration(parsed.totalSeconds)}. Defaulted to Easy/RPE 5 — edit as needed.`, 7000);
+      render();
+    } catch (err) {
+      toast('Could not parse/save that GPX file: ' + (err?.message || 'unknown error'));
+    }
+  };
+  reader.onerror = () => toast("Couldn't read that file.");
+  reader.readAsText(file);
+}
+
+/* ======================================================================
+   AI Coach handlers
+   ====================================================================== */
+async function handleSendChat() {
+  const input = document.getElementById('chatInputEl');
+  const question = (input?.value || '').trim();
+  if (!question || state.chatLoading) return;
+  state.chatError = '';
+  state.chatMessages.push({ role: 'user', content: question });
+  state.chatLoading = true;
+  render();
+  try {
+    const summary = buildTrainingSummary(state.sessions, state.config, state.config.unit);
+    const system = "You are a knowledgeable, encouraging running and endurance-training coach helping someone train for a half ironman, currently focused on the run leg. Use the training log data below to answer their question with specific, concrete analysis — cite actual numbers and dates from the log where relevant. Point out real trends (improving or declining) and plausible reasons (training load, recovery, pacing errors) rather than generic advice. Keep answers focused and readable, a few short paragraphs or a short list. You are not a doctor; for anything medical, suggest they consult one.\n\nTRAINING LOG DATA:\n" + summary;
+    const reply = await callClaude(system, state.chatMessages.map((m) => ({ role: m.role, content: m.content })));
+    state.chatMessages.push({ role: 'assistant', content: reply });
+  } catch (err) {
+    state.chatError = "Couldn't reach the AI coach. " + (err?.message || '');
+  } finally {
+    state.chatLoading = false;
+    render();
+  }
+}
+async function handleElaborateSuggestion() {
+  state.aiNoteLoading = true;
+  state.aiNote = '';
+  render();
+  const suggestion = getSuggestedRun();
+  try {
+    const summary = buildTrainingSummary(state.sessions, state.config, state.config.unit);
+    const system = `You are an endurance-training coach. Below is a training log summary and a rule-based next-workout suggestion already generated for the athlete, including a recommended day and pace range. In 3-5 sentences, give a personalized coaching note that explains WHY this workout, this day, and this pace make sense right now for their recovery, cardiovascular development, and long-term race pace — referencing specific numbers/trends from their actual log. Keep it warm but concise, no headers or bullet lists.\n\nTRAINING LOG DATA:\n${summary}\n\nSUGGESTED WORKOUT: ${suggestion.type}, ${suggestion.distanceLabel}, ${suggestion.effortLabel}${suggestion.dayLabel ? `, on ${suggestion.dayLabel}` : ''}${suggestion.paceLabel ? `, target pace ${suggestion.paceLabel}` : ''}. Base rationale: ${suggestion.rationale}`;
+    state.aiNote = await callClaude(system, [{ role: 'user', content: 'Explain this suggestion for me.' }]);
+  } catch (err) {
+    state.aiNote = "Couldn't reach the AI coach right now.";
+  } finally {
+    state.aiNoteLoading = false;
+    render();
+  }
+}
+/* ======================================================================
+   Leaderboard handlers
+   ====================================================================== */
+async function handleLoadLeaderboard() {
+  state.leaderboardLoading = true;
+  state.leaderboardError = '';
+  render();
+  try {
+    if (!state.profile) {
+      let profile = await fetchOwnProfile();
+      if (!profile) {
+        profile = { display_name: currentUser.email.split('@')[0], show_on_leaderboard: true };
+        await saveOwnProfile(profile);
+      }
+      state.profile = profile;
+    }
+    const rows = await fetchLeaderboardView(state.leaderboardPeriod);
+    state.leaderboard = formatLeaderboardRows(rows, state.config.unit);
+  } catch (e) {
+    state.leaderboardError = 'Could not load leaderboard: ' + (e?.message || 'unknown error');
+  } finally {
+    state.leaderboardLoading = false;
+    render();
+  }
+}
+async function handleSaveProfile(displayName, optin) {
+  const prev = state.profile;
+  state.profile = { display_name: displayName, show_on_leaderboard: optin };
+  render();
+  try {
+    await saveOwnProfile(state.profile);
+    await handleLoadLeaderboard();
+  } catch (e) {
+    state.profile = prev;
+    toast('Could not save leaderboard settings: ' + (e?.message || 'unknown error'));
+    render();
+  }
+}
+
+async function handleGenerateWeeklyPlan() {
+  state.weeklyPlanLoading = true;
+  state.weeklyPlanError = '';
+  render();
+  try {
+    const unit = state.config.unit, config = state.config;
+    const summary = buildTrainingSummary(state.sessions, config, unit);
+    const validTypes = TYPE_ORDER.join(', ');
+    const startDate = todayISO();
+    const alreadyLoggedByDate = {};
+    state.sessions.forEach((s) => { if (s.date >= startDate && s.date < addDays(startDate, 7)) alreadyLoggedByDate[s.date] = s; });
+    const loggedDatesList = Object.keys(alreadyLoggedByDate);
+    const unitLabel = unit === 'km' ? 'km' : 'mi';
+    const currentPhase = getCurrentPhase(config).key;
+    const weeklyCapKm = effectiveWeeklyCapKm(config, todayISO());
+    const weeklyCapDisplay = unit === 'km' ? weeklyCapKm : weeklyCapKm / KM_PER_MI;
+    const alreadyLoggedDist = Object.values(alreadyLoggedByDate).reduce((a, s) => a + (unit === 'km' ? s.distanceKm : s.distanceKm / KM_PER_MI), 0);
+    const remainingBudget = Math.max(2, weeklyCapDisplay - alreadyLoggedDist);
+
+    const system =
+      "You are an endurance-training coach planning the NEXT 7 DAYS of running for an athlete training for a half ironman, using their real training log, recent RPE trend, and weekly/monthly volume. Balance hard and easy days (roughly 80% easy effort), include one long run, avoid back-to-back hard days.\n\n" +
+      `ATHLETE PROFILE: self-reported experience level is "${config.experienceLevel || 'Intermediate'}", currently in the ${currentPhase} phase. Their weekly running-volume target for THIS phase is about ${Math.round(weeklyCapDisplay)} ${unitLabel} (already scaled for periodization). This is a hard ceiling: the sum of all NEW (non-Rest, non-Done) distances you assign across the 7 days must not exceed roughly ${Math.round(remainingBudget)} ${unitLabel} (accounting for ${Math.round(alreadyLoggedDist)} ${unitLabel} already run this week). Do not default to generic "textbook" distances if they'd blow this budget.\n\n` +
+      (currentPhase === 'Build' || currentPhase === 'Peak' ? `If you include a long run, aim it toward (but not exceeding the weekly budget above) the ~${Math.round(unit === 'km' ? evidenceLongRunTargetKm(config.raceDistanceKm) : evidenceLongRunTargetKm(config.raceDistanceKm) / KM_PER_MI)} ${unitLabel} evidence-based long-run threshold noted in the training log data.\n\n` : '') +
+      (loggedDatesList.length ? `IMPORTANT: these dates already have a completed session logged — do NOT suggest a new workout for them, output type "Done" for each with a note referencing what was already run: ${loggedDatesList.join(', ')}.\n\n` : '') +
+      `Respond with ONLY a raw JSON array (no markdown, no code fences, no commentary) of exactly 7 objects, one per day starting ${startDate}, in this exact shape:\n[{"date":"YYYY-MM-DD","type":"<one of: ${validTypes}, Rest, or Done>","distanceLabel":"short string like '6 km' or '' if Rest/Done","effortLabel":"short effort description or '' if Rest/Done","note":"one short sentence, max ~15 words"}]\n\nTRAINING LOG DATA:\n${summary}`;
+    const reply = await callClaude(system, [{ role: 'user', content: 'Plan my next 7 days of running.' }]);
+    const cleaned = reply.trim().replace(/^```(json)?/i, '').replace(/```$/, '').trim();
+    let parsed = JSON.parse(cleaned);
+    if (!Array.isArray(parsed) || !parsed.length) throw new Error('Unexpected response shape');
+
+    parsed = parsed.map((d) => {
+      const logged = alreadyLoggedByDate[d.date];
+      if (!logged) return d;
+      const distDisplay = unit === 'km' ? logged.distanceKm : logged.distanceKm / KM_PER_MI;
+      return { date: d.date, type: 'Done', distanceLabel: `${distDisplay.toFixed(1)} ${unit}`, effortLabel: `RPE ${logged.rpe}`, note: `Already logged (${TYPE_META[logged.type]?.label || logged.type}).` };
+    });
+    const withNums = parsed.map((d) => {
+      if (d.type === 'Rest' || d.type === 'Done') return { ...d, _num: 0 };
+      const match = String(d.distanceLabel || '').match(/[\d.]+/);
+      return { ...d, _num: match ? parseFloat(match[0]) : 0 };
+    });
+    const plannedTotal = withNums.reduce((a, d) => a + d._num, 0);
+    if (plannedTotal > remainingBudget * 1.1 && plannedTotal > 0) {
+      const scale = remainingBudget / plannedTotal;
+      parsed = withNums.map((d) => {
+        if (d._num <= 0) { const { _num, ...rest } = d; return rest; }
+        const scaledLabel = (d.distanceLabel || '').replace(/[\d.]+/, (Math.round(d._num * scale * 10) / 10).toString());
+        const { _num, ...rest } = d;
+        return { ...rest, distanceLabel: scaledLabel };
+      });
+    } else {
+      parsed = withNums.map(({ _num, ...rest }) => rest);
+    }
+    state.weeklyPlan = parsed;
+  } catch (err) {
+    state.weeklyPlanError = "Couldn't generate a weekly plan right now.";
+  } finally {
+    state.weeklyPlanLoading = false;
+    render();
+  }
+}
+
+/* ======================================================================
+   Event wiring (re-run after every render since innerHTML wipes listeners)
+   ====================================================================== */
+function wireEvents() {
+  const $ = (id) => document.getElementById(id);
+  const on = (id, ev, fn) => { const node = $(id); if (node) node.addEventListener(ev, fn); };
+
+  on('unitKm', 'click', () => { persistConfig({ ...state.config, unit: 'km' }); render(); });
+  on('unitMi', 'click', () => { persistConfig({ ...state.config, unit: 'mi' }); render(); });
+  on('editConfigBtn', 'click', () => { state.editingConfig = !state.editingConfig; render(); });
+  on('saveConfigBtn', 'click', () => {
+    const unit = state.config.unit;
+    const raceDistanceRaw = Number($('cfgRaceDistance').value);
+    const weeklyCapRaw = Number($('cfgWeeklyCap').value);
+    const next = {
+      ...state.config,
+      raceName: $('cfgRaceName').value,
+      raceDate: $('cfgRaceDate').value,
+      programStartDate: $('cfgStartDate').value,
+      experienceLevel: $('cfgExperience').value,
+      raceDistanceKm: raceDistanceRaw > 0 ? (unit === 'km' ? raceDistanceRaw : raceDistanceRaw * KM_PER_MI) : state.config.raceDistanceKm,
+      weeklyVolumeCapKm: weeklyCapRaw > 0 ? (unit === 'km' ? weeklyCapRaw : weeklyCapRaw * KM_PER_MI) : state.config.weeklyVolumeCapKm,
+    };
+    persistConfig(next);
+    state.editingConfig = false;
+    render();
+  });
+  on('cancelConfigBtn', 'click', () => { state.editingConfig = false; render(); });
+  on('cfgExperience', 'change', (e) => {
+    // live-update the weekly cap field to the new level's default without requiring Save first
+    const level = e.target.value;
+    const capField = $('cfgWeeklyCap');
+    if (capField) {
+      const km = experienceWeeklyCapKm(level, state.config.raceDistanceKm);
+      capField.value = Math.round(state.config.unit === 'km' ? km : km / KM_PER_MI);
+    }
+  });
+
+  on('exportJsonBtn', 'click', () => exportJSON(state.sessions, state.config));
+  on('exportCsvBtn', 'click', () => exportCSV(state.sessions));
+  on('importBtn', 'click', () => $('fileInput').click());
+  on('fileInput', 'change', (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => handleImportText(String(reader.result || ''));
+    reader.readAsText(file);
+    e.target.value = '';
+  });
+  on('importGpxBtn', 'click', () => $('gpxFileInput').click());
+  on('gpxFileInput', 'change', (e) => {
+    const file = e.target.files?.[0];
+    if (file) handleGpxFile(file);
+    e.target.value = '';
+  });
+
+  on('openFormBtn', 'click', () => { resetForm(); state.showForm = true; render(); });
+  on('closeFormBtn', 'click', () => { state.showForm = false; resetForm(); render(); });
+  on('cancelEditBtn', 'click', () => { state.showForm = false; resetForm(); render(); });
+  on('saveSessionBtn', 'click', () => {
+    state.form = {
+      date: $('formDate').value, type: $('formType').value, distance: $('formDistance').value,
+      duration: $('formDuration').value, hr: $('formHr').value, rpe: Number($('formRpe').value), notes: $('formNotes').value,
+    };
+    handleSaveSession();
+  });
+  on('formRpe', 'input', (e) => { const v = $('rpeVal'); if (v) v.textContent = e.target.value; });
+
+  document.querySelectorAll('.edit-session-btn').forEach((btn) => btn.addEventListener('click', () => {
+    const session = state.sessions.find((s) => s.id === btn.dataset.id);
+    if (session) handleEditStart(session);
+  }));
+  document.querySelectorAll('.delete-session-btn').forEach((btn) => btn.addEventListener('click', () => handleDeleteSession(btn.dataset.id)));
+
+  on('chartTypeSelect', 'change', (e) => { state.chartType = e.target.value; render(); });
+  on('statsPeriodWeek', 'click', () => { state.statsPeriod = 'week'; render(); });
+  on('statsPeriodMonth', 'click', () => { state.statsPeriod = 'month'; render(); });
+
+  on('navTraining', 'click', () => { state.page = 'training'; render(); });
+  on('navLeaderboard', 'click', () => { state.page = 'leaderboard'; render(); handleLoadLeaderboard(); });
+  on('lbPeriodWeek', 'click', () => { state.leaderboardPeriod = 'week'; handleLoadLeaderboard(); });
+  on('lbPeriodMonth', 'click', () => { state.leaderboardPeriod = 'month'; handleLoadLeaderboard(); });
+  on('lbSaveBtn', 'click', () => {
+    const name = $('lbDisplayName').value.trim() || currentUser.email.split('@')[0];
+    const optin = $('lbOptIn').checked;
+    handleSaveProfile(name, optin);
+  });
+
+  on('elaborateBtn', 'click', handleElaborateSuggestion);
+  on('generatePlanBtn', 'click', handleGenerateWeeklyPlan);
+  on('regeneratePlanBtn', 'click', (e) => { e.stopPropagation(); handleGenerateWeeklyPlan(); });
+  on('weeklyHeaderRow', 'click', () => { if (state.weeklyPlan) { state.weeklyExpanded = !state.weeklyExpanded; render(); } });
+
+  on('chatSendBtn', 'click', handleSendChat);
+  on('chatInputEl', 'keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); handleSendChat(); } });
+
+  on('signOutBtn', 'click', async () => { await supabaseClient.auth.signOut(); });
+}
+
+/* ======================================================================
+   Auth flow: login / signup / session handling
+   ====================================================================== */
+function showAuthGate() {
+  document.getElementById('authGate').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+}
+function resetTransientState() {
+  state.page = 'training';
+  state.profile = null;
+  state.leaderboard = null;
+  state.leaderboardPeriod = 'week';
+  state.leaderboardLoading = false;
+  state.leaderboardError = '';
+  state.showForm = false;
+  state.editingId = null;
+  state.editingConfig = false;
+  state.chatMessages = [];
+  state.chatError = '';
+  state.aiNote = '';
+  state.weeklyPlan = null;
+  state.weeklyPlanError = '';
+  state.weeklyExpanded = false;
+}
+async function showApp() {
+  resetTransientState();
+  document.getElementById('authGate').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  await loadStateForCurrentUser();
+  render();
+}
+function setAuthMessage(kind, text) {
+  const errEl = document.getElementById('authError');
+  const msgEl = document.getElementById('authMsg');
+  errEl.style.display = 'none'; msgEl.style.display = 'none';
+  if (kind === 'error') { errEl.textContent = text; errEl.style.display = 'block'; }
+  if (kind === 'ok') { msgEl.textContent = text; msgEl.style.display = 'block'; }
+}
+function wireAuthGate() {
+  document.getElementById('loginBtn').addEventListener('click', async () => {
+    const email = document.getElementById('authEmail').value.trim();
+    const password = document.getElementById('authPassword').value;
+    if (!email || !password) return setAuthMessage('error', 'Enter both email and password.');
+    const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    if (error) setAuthMessage('error', error.message);
+  });
+  document.getElementById('signupBtn').addEventListener('click', async () => {
+    const email = document.getElementById('authEmail').value.trim();
+    const password = document.getElementById('authPassword').value;
+    if (!email || !password) return setAuthMessage('error', 'Enter both email and password.');
+    if (password.length < 6) return setAuthMessage('error', 'Password must be at least 6 characters.');
+    const { error } = await supabaseClient.auth.signUp({ email, password });
+    if (error) setAuthMessage('error', error.message);
+    else setAuthMessage('ok', 'Account created! Check your email if confirmation is required, then log in.');
+  });
+}
+
+wireAuthGate();
+supabaseClient.auth.onAuthStateChange((event, session) => {
+  currentUser = session?.user || null;
+  if (currentUser) showApp();
+  else showAuthGate();
+});
+</script>
+</body>
+</html>
+
+
