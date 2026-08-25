@@ -231,8 +231,8 @@ function uid() { return Math.random().toString(36).slice(2, 10) + Date.now().toS
    the Row Level Security policies from supabase_schema.sql, not by hiding
    this key.
    ====================================================================== */
-const SUPABASE_URL = 'YOUR_SUPABASE_PROJECT_URL'; // e.g. https://xxxxx.supabase.co
-const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+const SUPABASE_URL = 'https://ycxlmlmsqkpmjaciiprb.supabase.co'; // e.g. https://xxxxx.supabase.co
+const SUPABASE_ANON_KEY = 'sb_publishable_dN-S7h0doESrq4Vv1EhH5Q_B5yQselb';
 
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let currentUser = null;
