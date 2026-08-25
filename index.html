@@ -23,7 +23,67 @@
     --amber: #FFD166;
     --orange: #FF9F6B;
     --gray: #7C8891;
+    --lb-purple-deep: #2B1B4D;
+    --lb-purple: #5B3FA0;
+    --lb-purple-light: #8A63D6;
+    --gold: #F0C24B;
+    --silver: #C9CDD6;
+    --bronze: #D3915A;
   }
+
+  .lb-card {
+    border-radius: 16px;
+    overflow: hidden;
+    background: linear-gradient(160deg, var(--lb-purple-deep), #1A1030);
+    border: 1px solid #3A2766;
+    box-shadow: 0 8px 30px rgba(43, 27, 77, 0.4);
+  }
+  .lb-header {
+    padding: 20px 22px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: radial-gradient(circle at 20% 0%, rgba(138,99,214,0.35), transparent 60%);
+  }
+  .lb-header-cols {
+    display: grid;
+    grid-template-columns: 40px 1fr 56px 64px 68px 60px;
+    gap: 6px;
+    padding: 4px 22px 10px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.5);
+  }
+  .lb-rows { padding: 0 12px 14px; display: flex; flex-direction: column; gap: 6px; }
+  .lb-row {
+    display: grid;
+    grid-template-columns: 40px 1fr 56px 64px 68px 60px;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 10px;
+    border-radius: 10px;
+    background: linear-gradient(90deg, var(--lb-purple) 0%, var(--lb-purple-light) 100%);
+    clip-path: polygon(0 0, 100% 0, 98% 100%, 0% 100%);
+    position: relative;
+    color: #fff;
+  }
+  .lb-row.me { outline: 2px solid var(--lime); outline-offset: -2px; }
+  .lb-row:nth-child(even) { background: linear-gradient(90deg, #4A3389 0%, #7856C4 100%); }
+  .lb-rank-badge {
+    width: 30px; height: 30px; border-radius: 999px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-family: 'IBM Plex Mono', monospace; font-size: 13px;
+    color: #2B1B4D;
+    background: var(--lb-purple-light);
+  }
+  .lb-rank-badge.gold { background: linear-gradient(135deg, #FFE29A, var(--gold)); box-shadow: 0 0 10px rgba(240,194,75,0.6); }
+  .lb-rank-badge.silver { background: linear-gradient(135deg, #EDEFF3, var(--silver)); }
+  .lb-rank-badge.bronze { background: linear-gradient(135deg, #E8B287, var(--bronze)); }
+  .lb-name { font-size: 13px; font-weight: 700; }
+  .lb-you-tag { font-size: 10px; font-weight: 600; color: var(--lime); margin-left: 6px; }
+  .lb-stat { font-family: 'IBM Plex Mono', monospace; font-size: 12px; text-align: center; opacity: 0.95; }
 
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; background: var(--bg); }
@@ -224,6 +284,19 @@ function parseDuration(str) {
 }
 function uid() { return Math.random().toString(36).slice(2, 10) + Date.now().toString(36); }
 
+// Sorts sessions by date, then by id as a stable tiebreaker. Two sessions on
+// the same date must always come out in the same relative order regardless
+// of what order they were fetched/stored in — otherwise "last session"
+// (and therefore the suggested-run logic) can silently flip between page
+// loads even though nothing about the data actually changed.
+function compareSessionsByDate(a, b) {
+  if (a.date < b.date) return -1;
+  if (a.date > b.date) return 1;
+  if (a.id < b.id) return -1;
+  if (a.id > b.id) return 1;
+  return 0;
+}
+
 /* ======================================================================
    Supabase setup — FILL IN YOUR OWN PROJECT'S VALUES BELOW
    (Settings -> API in your Supabase dashboard). The anon/public key is
@@ -252,7 +325,7 @@ function sessionToDbRow(session) {
   return { user_id: currentUser.id, date: session.date, type: session.type, distance_km: session.distanceKm, total_seconds: session.totalSeconds, avg_hr: session.avgHR, rpe: session.rpe, notes: session.notes || '' };
 }
 async function fetchSessionsFromDB() {
-  const { data, error } = await supabaseClient.from('runlog_sessions').select('*').eq('user_id', currentUser.id).order('date');
+  const { data, error } = await supabaseClient.from('runlog_sessions').select('*').eq('user_id', currentUser.id).order('date').order('id');
   if (error) { console.error('fetch sessions failed', error); return []; }
   return (data || []).map(dbRowToSession);
 }
@@ -330,7 +403,11 @@ const DEFAULT_CONFIG = {
   weeklyVolumeCapKm: null,
   programStartDate: null,
   raceDistanceKm: 21.1,
+  workDays: [1, 2, 3, 4, 5], // 0=Sun..6=Sat, matches Date.getDay(); default weekly baseline (Mon-Fri)
+  workDayOverrides: {}, // { "YYYY-MM-DD": true|false } — specific dates that override the weekly baseline, for irregular schedules
 };
+
+const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 /* ======================================================================
    Evidence-based volume model (Fokkema 2020 + Doherty 2020)
@@ -427,7 +504,7 @@ function effectiveWeeklyCapKm(config, dateISO) {
 function computeSuggestedRun(sessions, config, unit) {
   const unitLabel = unit === 'km' ? 'km' : 'mi';
   const toUnit = (km) => (unit === 'km' ? km : km / KM_PER_MI);
-  const sorted = [...sessions].sort((a, b) => (a.date < b.date ? -1 : 1));
+  const sorted = [...sessions].sort(compareSessionsByDate);
   const phase = getCurrentPhase(config).key;
 
   const weeklyCapKm = effectiveWeeklyCapKm(config, todayISO());
@@ -569,30 +646,57 @@ function computeSuggestedPace(sessions, type, unit, recentRpeAvg) {
   return { label: `${formatDuration(center - 8)}-${formatDuration(center + 8)} /${unitLabel}`, center, source, adjNote };
 }
 
-function chooseNextRunDay(suggestionType, daysSinceLast) {
+function isWorkDay(dateStr, config) {
+  const overrides = config?.workDayOverrides || {};
+  if (Object.prototype.hasOwnProperty.call(overrides, dateStr)) return !!overrides[dateStr];
+  const dow = new Date(dateStr + 'T00:00:00').getDay();
+  return (config?.workDays || []).includes(dow);
+}
+
+// Within an offset window [minOffset, maxOffset] from today, finds the
+// earliest day that's NOT a work day. Falls back to minOffset if every day
+// in the window happens to be a work day (e.g. someone who works every day).
+function earliestOffDayOffset(minOffset, maxOffset, config) {
+  for (let o = minOffset; o <= maxOffset; o++) {
+    if (!isWorkDay(addDays(todayISO(), o), config)) return o;
+  }
+  return minOffset;
+}
+
+function chooseNextRunDay(suggestionType, daysSinceLast, config) {
   let offset = 0;
-  if (suggestionType === 'Recovery') offset = 0;
-  else if (suggestionType === 'Long') {
-    offset = Math.max(1, daysSinceLast >= 1 ? 1 : 2);
-    const candidate = addDays(todayISO(), offset);
-    const dow = new Date(candidate + 'T00:00:00').getDay();
-    const daysToSat = (6 - dow + 7) % 7;
-    if (daysToSat <= 5) offset += daysToSat;
-  } else if (suggestionType === 'Tempo' || suggestionType === 'Interval') offset = 1;
-  else offset = daysSinceLast <= 1 ? 1 : 0;
+  if (suggestionType === 'Recovery') {
+    offset = 0;
+  } else if (suggestionType === 'Long') {
+    // Long runs benefit most from a free day — search up to a week out for
+    // the soonest non-work day rather than hardcoding "prefer Saturday",
+    // so this adapts to whatever schedule the athlete actually has
+    // (including per-date overrides for irregular schedules).
+    const minOffset = Math.max(1, daysSinceLast >= 1 ? 1 : 2);
+    offset = earliestOffDayOffset(minOffset, minOffset + 6, config);
+  } else if (suggestionType === 'Tempo' || suggestionType === 'Interval') {
+    // Quality sessions are easier to fit well on a day with more time too,
+    // but shouldn't wait as long as a long run would — search a short window.
+    offset = earliestOffDayOffset(1, 3, config);
+  } else {
+    offset = daysSinceLast <= 1 ? 1 : 0;
+  }
   if (daysSinceLast === 0) offset = Math.max(offset, 1);
   return addDays(todayISO(), offset);
 }
 function formatDayLabel(dateStr) {
   const today = todayISO();
   const tomorrow = addDays(today, 1);
-  if (dateStr === today) return 'Today';
-  if (dateStr === tomorrow) return 'Tomorrow';
-  return new Date(dateStr + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+  const d = new Date(dateStr + 'T00:00:00');
+  const monthDay = d.toLocaleDateString(undefined, { month: 'long', day: 'numeric' });
+  if (dateStr === today) return `Today - ${monthDay}`;
+  if (dateStr === tomorrow) return `Tomorrow - ${monthDay}`;
+  const weekday = d.toLocaleDateString(undefined, { weekday: 'long' });
+  return `${weekday} - ${monthDay}`;
 }
 
 function enrichSuggestion(base, sessions, config, unit) {
-  const sorted = [...sessions].sort((a, b) => (a.date < b.date ? -1 : 1));
+  const sorted = [...sessions].sort(compareSessionsByDate);
   const last = sorted[sorted.length - 1];
   const daysSinceLast = last ? daysBetween(last.date, todayISO()) : 3;
   const recentN = sorted.slice(-3);
@@ -607,7 +711,7 @@ function enrichSuggestion(base, sessions, config, unit) {
   let extra = ` Over the last 7 days you've run ${weekDist.toFixed(1)} ${unit}, ${monthDist.toFixed(1)} ${unit} over the last 30.`;
   if (recentRpeAvg != null) extra += ` Your last ${recentN.length} session(s) averaged RPE ${recentRpeAvg.toFixed(1)}.`;
 
-  const suggestedDate = chooseNextRunDay(base.type, daysSinceLast);
+  const suggestedDate = chooseNextRunDay(base.type, daysSinceLast, config);
   const dayLabel = formatDayLabel(suggestedDate);
   extra += ` ${dayLabel} fits your recovery/schedule pattern.`;
 
@@ -826,7 +930,7 @@ function isoWeekKey(dateStr) {
 function buildTrainingSummary(sessions, config, unit) {
   const unitLabel = unit === 'km' ? 'km' : 'mi';
   const toUnit = (km) => (unit === 'km' ? km : km / KM_PER_MI);
-  const sorted = [...sessions].sort((a, b) => (a.date < b.date ? -1 : 1));
+  const sorted = [...sessions].sort(compareSessionsByDate);
   const phase = getCurrentPhase(config);
   const daysToRace = daysBetween(todayISO(), config.raceDate);
   const lines = [];
@@ -835,6 +939,23 @@ function buildTrainingSummary(sessions, config, unit) {
   lines.push(`Current training phase: ${phase.key}.`);
   lines.push(`Distance unit preference: ${unitLabel}.`);
   lines.push(`Experience level: ${config.experienceLevel || 'Intermediate'}.`);
+  const workDays = config.workDays || [];
+  const workDayNames = workDays.map((d) => DAY_LABELS[d]).join(', ') || 'none set';
+  const offDayNames = [0, 1, 2, 3, 4, 5, 6].filter((d) => !workDays.includes(d)).map((d) => DAY_LABELS[d]).join(', ') || 'none';
+  const next7Status = Array.from({ length: 7 }, (_, i) => {
+    const d = addDays(todayISO(), i);
+    const dow = new Date(d + 'T00:00:00').getDay();
+    const isOverride = Object.prototype.hasOwnProperty.call(config.workDayOverrides || {}, d);
+    const status = isWorkDay(d, config) ? 'work' : 'off';
+    return `${DAY_LABELS[dow]} ${d.slice(5)} (${status}${isOverride ? ', one-off override' : ''})`;
+  }).join(', ');
+  lines.push(
+    `Work schedule baseline: works on ${workDayNames}; free/off days are ${offDayNames}. This athlete's schedule can be ` +
+      `irregular, so specific dates may override the baseline — here is the ACTUAL work/off status for the next 7 days, ` +
+      `use this exact breakdown rather than assuming the weekly pattern holds: ${next7Status}. Prefer placing long runs ` +
+      `and quality (tempo/interval) sessions on off days when reasonably possible, and keep work-day sessions ` +
+      `shorter/easier given likely time constraints.`
+  );
   const capKmNow = effectiveWeeklyCapKm(config, todayISO());
   const evidenceLongRun = toUnit(evidenceLongRunTargetKm(config.raceDistanceKm));
   lines.push(`Current weekly volume target: ~${Math.round(toUnit(capKmNow))} ${unitLabel}/week (ramps <=10%/week through Base/Build, holds at peak, tapers to half of peak by race day).`);
@@ -872,12 +993,15 @@ let state = {
   showForm: false,
   editingId: null,
   editingConfig: false,
+  editingWorkDays: null,
+  editingWorkDayOverrides: null,
   chartType: 'Easy',
   statsPeriod: 'month',
   page: 'training', // 'training' | 'leaderboard'
   profile: null, // { display_name, show_on_leaderboard }
   leaderboard: null,
   leaderboardPeriod: 'week',
+  leaderboardSort: { key: 'distance', dir: 'desc' },
   leaderboardLoading: false,
   leaderboardError: '',
   form: { date: todayISO(), type: 'Easy', distance: '', duration: '', hr: '', rpe: 5, notes: '' },
@@ -908,6 +1032,13 @@ async function loadStateForCurrentUser() {
   if (needsSave) await saveConfigDB(c);
   state.sessions = sessions;
   state.config = c;
+  // Restore a previously-generated weekly plan if it was made today — it's
+  // still valid for the rest of today, so there's no need to re-call the AI
+  // (and get slightly different creative wording) on every page reload.
+  // A plan from an earlier day is naturally stale and left for regeneration.
+  if (c.weeklyPlan && c.weeklyPlanDate === todayISO()) {
+    state.weeklyPlan = c.weeklyPlan;
+  }
 }
 
 // Local-first: update the in-memory array immediately for a snappy UI, then
@@ -1026,6 +1157,38 @@ function renderEditConfigPanel() {
         <span class="field-hint" style="display:block; margin-bottom:2px;">Ramps &le;10%/wk, tapers to half by race &mdash; currently ~${currentCap} ${unitLabel}/wk in ${phase.key}</span>
         <input id="cfgWeeklyCap" inputmode="numeric" value="${Math.round(unit === 'km' ? c.weeklyVolumeCapKm : c.weeklyVolumeCapKm / KM_PER_MI)}" />
       </div>
+      <div class="field" style="flex-basis:100%;">
+        <span class="field-label">Work days (weekly baseline)</span>
+        <span class="field-hint" style="margin-bottom:6px;">Long runs and quality sessions get scheduled on off days when possible</span>
+        <div style="display:flex; gap:6px;">
+          ${DAY_LABELS.map((label, i) => {
+            const isWork = (state.editingWorkDays || c.workDays).includes(i);
+            return `<button type="button" class="workday-toggle" data-day="${i}" style="flex:1; padding:8px 0; border-radius:8px; font-size:12px; font-weight:600; border:1px solid ${isWork ? 'var(--coral)' : 'var(--border)'}; background:${isWork ? 'var(--coral)1A' : 'transparent'}; color:${isWork ? 'var(--coral)' : 'var(--text-mid)'};">${label}</button>`;
+          }).join('')}
+        </div>
+      </div>
+      <div class="field" style="flex-basis:100%;">
+        <div style="display:flex; justify-content:space-between; align-items:baseline;">
+          <span class="field-label">Next 2 weeks (overrides for an irregular schedule)</span>
+          <button type="button" id="clearOverridesBtn" style="font-size:11px; color:var(--text-low); background:none; border:none; text-decoration:underline; padding:0;">Clear overrides</button>
+        </div>
+        <span class="field-hint" style="margin-bottom:6px;">Click any day to flip it &mdash; overrides the weekly baseline just for that date</span>
+        <div style="display:flex; gap:5px; overflow-x:auto; padding-bottom:4px;">
+          ${Array.from({ length: 14 }, (_, i) => {
+            const date = addDays(todayISO(), i);
+            const dow = new Date(date + 'T00:00:00').getDay();
+            const effectiveConfig = { workDays: state.editingWorkDays || c.workDays, workDayOverrides: state.editingWorkDayOverrides || c.workDayOverrides || {} };
+            const isWork = isWorkDay(date, effectiveConfig);
+            const hasOverride = Object.prototype.hasOwnProperty.call(effectiveConfig.workDayOverrides, date);
+            return `<button type="button" class="workday-override-toggle" data-date="${date}" title="${date}"
+              style="flex:0 0 auto; min-width:40px; padding:6px 4px; border-radius:8px; font-size:11px; font-weight:600; text-align:center;
+              border:1px solid ${isWork ? 'var(--coral)' : 'var(--border)'}; background:${isWork ? 'var(--coral)1A' : 'transparent'}; color:${isWork ? 'var(--coral)' : 'var(--text-mid)'};
+              ${hasOverride ? 'box-shadow: inset 0 0 0 1px var(--lime);' : ''}">
+              <div>${DAY_LABELS[dow]}</div><div class="mono" style="font-size:10px;">${date.slice(8)}</div>
+            </button>`;
+          }).join('')}
+        </div>
+      </div>
       <div style="align-self:flex-end; display:flex; gap:10px;">
         <button class="btn btn-primary" id="saveConfigBtn">Save</button>
         <button class="btn btn-ghost" id="cancelConfigBtn">Cancel</button>
@@ -1042,7 +1205,7 @@ function renderCourseTimeline() {
   const width = 1000, height = 92, trackY = 54, trackH = 14;
   let prevEnd = 0;
   const segments = PHASES.map((p) => { const x0 = prevEnd * width, x1 = p.end * width; prevEnd = p.end; return { ...p, x0, x1 }; });
-  const sorted = [...state.sessions].sort((a, b) => (a.date < b.date ? -1 : 1));
+  const sorted = [...state.sessions].sort(compareSessionsByDate);
   const dots = sorted.map((s) => {
     const d = daysBetween(start, s.date);
     const frac = d / totalDays;
@@ -1272,7 +1435,7 @@ function renderAddSessionSection() {
    ====================================================================== */
 function renderHistoryAndCharts() {
   const unit = state.config.unit, unitLabel = unit === 'km' ? 'km' : 'mi';
-  const sorted = [...state.sessions].sort((a, b) => (a.date < b.date ? -1 : 1));
+  const sorted = [...state.sessions].sort(compareSessionsByDate);
   const rows = [...sorted].reverse().map((s) => {
     const dist = unit === 'km' ? s.distanceKm : s.distanceKm / KM_PER_MI;
     return `<div class="session-row">
@@ -1375,7 +1538,7 @@ function drawCharts() {
   destroyCharts();
   const unit = state.config.unit;
   const type = state.chartType;
-  const sorted = [...state.sessions].sort((a, b) => (a.date < b.date ? -1 : 1));
+  const sorted = [...state.sessions].sort(compareSessionsByDate);
   const filtered = sorted.filter((s) => s.type === type);
 
   const paceCanvas = document.getElementById('paceChartCanvas');
@@ -1437,26 +1600,52 @@ function renderPageNav() {
   `;
 }
 
+function sortLeaderboardRows(rows, sort) {
+  const key = sort?.key || 'distance';
+  const dir = sort?.dir === 'asc' ? 1 : -1;
+  const valueOf = {
+    name: (r) => (r.name || '').toLowerCase(),
+    count: (r) => r.count,
+    distance: (r) => r.distance,
+    pace: (r) => (r.avgPaceSec == null ? Infinity : r.avgPaceSec), // no-pace rows sort last regardless of direction
+    hr: (r) => (r.avgHR == null ? Infinity : r.avgHR),
+  }[key];
+  return [...rows].sort((a, b) => {
+    const av = valueOf(a), bv = valueOf(b);
+    if (av < bv) return -1 * dir;
+    if (av > bv) return 1 * dir;
+    return 0;
+  });
+}
+const LB_DEFAULT_DIR = { name: 'asc', count: 'desc', distance: 'desc', pace: 'asc', hr: 'asc' };
+
 function renderLeaderboardPage() {
   const unit = state.config.unit, unitLabel = unit === 'km' ? 'km' : 'mi';
   const profile = state.profile || { display_name: '', show_on_leaderboard: true };
   const period = state.leaderboardPeriod || 'week';
-  const rows = state.leaderboard || [];
+  const sort = state.leaderboardSort || { key: 'distance', dir: 'desc' };
+  const rows = sortLeaderboardRows(state.leaderboard || [], sort);
+
+  const rankClass = (i) => (i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '');
+
+  function headerCell(label, key, align) {
+    const active = sort.key === key;
+    const arrow = active ? (sort.dir === 'asc' ? ' &#9650;' : ' &#9660;') : '';
+    return `<span class="lb-sortable" data-sort-key="${key}" style="cursor:pointer; ${align ? 'text-align:center;' : ''} ${active ? 'color:#fff;' : ''}">${label}${arrow}</span>`;
+  }
 
   const rowsHtml = rows.map((r, i) => `
-    <div class="session-row" style="${r.isMe ? 'border-color:var(--lime);' : ''}">
-      <div class="mono" style="width:24px; text-align:center; font-weight:700; color:${i === 0 ? 'var(--amber)' : 'var(--text-mid)'};">${i + 1}</div>
-      <div style="flex:1; min-width:0;">
-        <div style="font-size:13px; font-weight:600;">${escapeHtml(r.name)}${r.isMe ? ' <span style="color:var(--lime); font-size:11px; font-weight:400;">(you)</span>' : ''}</div>
-        <div class="mono" style="font-size:12px; color:var(--text-mid); margin-top:3px; display:flex; gap:12px; flex-wrap:wrap;">
-          <span>${r.distance.toFixed(1)} ${unitLabel}</span>
-          <span>${r.avgPaceSec != null ? formatDuration(r.avgPaceSec) + '/' + unitLabel : '--:--'}</span>
-          <span>${r.avgHR != null ? Math.round(r.avgHR) + ' bpm' : '-- bpm'}</span>
-          <span>${r.count} session${r.count === 1 ? '' : 's'}</span>
-        </div>
-      </div>
+    <div class="lb-row ${r.isMe ? 'me' : ''}">
+      <div class="lb-rank-badge ${rankClass(i)}">${i + 1}</div>
+      <div class="lb-name">${escapeHtml(r.name)}${r.isMe ? '<span class="lb-you-tag">(you)</span>' : ''}</div>
+      <div class="lb-stat">${r.count}</div>
+      <div class="lb-stat">${r.distance.toFixed(1)}</div>
+      <div class="lb-stat">${r.avgPaceSec != null ? formatDuration(r.avgPaceSec) + '/' + unitLabel : '--:--'}</div>
+      <div class="lb-stat">${r.avgHR != null ? Math.round(r.avgHR) : '--'}</div>
     </div>
-  `).join('') || (state.leaderboardLoading ? '' : `<div style="color:var(--text-mid); font-size:13px; padding:20px 0;">No one on the leaderboard yet for this period. Opt in below and log a run to appear.</div>`);
+  `).join('');
+
+  const emptyState = `<div style="color:rgba(255,255,255,0.6); font-size:13px; padding:20px 22px;">No one on the leaderboard yet for this period. Opt in below and log a run to appear.</div>`;
 
   return `
     <div style="max-width:640px; margin:0 auto;">
@@ -1467,11 +1656,20 @@ function renderLeaderboardPage() {
           <button id="lbPeriodMonth" style="padding:6px 12px; font-size:12px; font-weight:600; ${period === 'month' ? 'background:var(--lime); color:var(--bg);' : 'color:var(--text-mid);'}">This month</button>
         </div>
       </div>
-      <div class="field-hint" style="margin-top:4px;">Ranked by total distance. Only opted-in friends appear.</div>
       ${state.leaderboardError ? `<div style="color:var(--coral); font-size:12px; margin-top:10px;">${escapeHtml(state.leaderboardError)}</div>` : ''}
-      <div style="display:flex; flex-direction:column; gap:8px; margin-top:14px;">
-        ${state.leaderboardLoading ? `<div style="color:var(--text-low); font-size:13px;">Loading…</div>` : rowsHtml}
+
+      <div class="lb-card" style="margin-top:14px;">
+        <div class="lb-header">
+          <span style="font-size:22px;">&#127942;</span>
+          <span class="display" style="font-size:26px; font-weight:800; letter-spacing:0.03em; color:#fff;">LEADERBOARD</span>
+        </div>
+        <div class="lb-header-cols">
+          <span>Rank</span>${headerCell('Name', 'name')}${headerCell('Runs', 'count', true)}${headerCell(unitLabel, 'distance', true)}${headerCell('Pace/' + unitLabel, 'pace', true)}${headerCell('Avg HR', 'hr', true)}</div>
+        <div class="lb-rows">
+          ${state.leaderboardLoading ? `<div style="color:rgba(255,255,255,0.6); font-size:13px; padding:10px;">Loading…</div>` : (rowsHtml || emptyState)}
+        </div>
       </div>
+      <div class="field-hint" style="margin-top:8px;">Click a column to sort. Only opted-in friends appear.</div>
 
       <div class="card" style="margin-top:24px;">
         <div class="section-title" style="font-size:16px;">Your leaderboard settings</div>
@@ -1550,14 +1748,18 @@ async function handleSaveSession() {
 
   if (state.editingId) {
     const updated = { id: state.editingId, date: f.date, type: f.type, distanceKm, totalSeconds: durationSec, avgHR: hrNum, rpe: Number(f.rpe), notes: f.notes?.trim() || '' };
-    state.sessions = state.sessions.map((s) => (s.id === state.editingId ? updated : s)).sort((a, b) => (a.date < b.date ? -1 : 1));
-    resetForm(); state.showForm = false; render();
+    state.sessions = state.sessions.map((s) => (s.id === state.editingId ? updated : s)).sort(compareSessionsByDate);
+    resetForm(); state.showForm = false;
+    reconcileWeeklyPlan();
+    render();
     try { await updateSessionDB(updated); } catch (e) { toast('Could not save changes: ' + e.message); }
   } else {
     const tempId = uid();
     const session = { id: tempId, date: f.date, type: f.type, distanceKm, totalSeconds: durationSec, avgHR: hrNum, rpe: Number(f.rpe), notes: f.notes?.trim() || '' };
-    state.sessions = [...state.sessions, session].sort((a, b) => (a.date < b.date ? -1 : 1));
-    resetForm(); state.showForm = false; render();
+    state.sessions = [...state.sessions, session].sort(compareSessionsByDate);
+    resetForm(); state.showForm = false;
+    reconcileWeeklyPlan();
+    render();
     try {
       const saved = await insertSessionDB(session);
       state.sessions = state.sessions.map((s) => (s.id === tempId ? saved : s));
@@ -1565,6 +1767,7 @@ async function handleSaveSession() {
     } catch (e) {
       toast('Could not save session: ' + e.message);
       state.sessions = state.sessions.filter((s) => s.id !== tempId);
+      reconcileWeeklyPlan();
       render();
     }
   }
@@ -1572,8 +1775,9 @@ async function handleSaveSession() {
 async function handleDeleteSession(id) {
   const prev = state.sessions;
   state.sessions = state.sessions.filter((s) => s.id !== id);
+  reconcileWeeklyPlan();
   render();
-  try { await deleteSessionDB(id); } catch (e) { toast('Could not delete: ' + e.message); state.sessions = prev; render(); }
+  try { await deleteSessionDB(id); } catch (e) { toast('Could not delete: ' + e.message); state.sessions = prev; reconcileWeeklyPlan(); render(); }
 }
 
 /* ======================================================================
@@ -1593,7 +1797,8 @@ async function handleImportText(text) {
   const dupes = imported.length - toAdd.length;
   try {
     const saved = await bulkInsertSessionsDB(toAdd);
-    state.sessions = [...state.sessions, ...saved].sort((a, b) => (a.date < b.date ? -1 : 1));
+    state.sessions = [...state.sessions, ...saved].sort(compareSessionsByDate);
+    reconcileWeeklyPlan();
     toast(`Imported ${saved.length} session${saved.length === 1 ? '' : 's'}.${dupes ? ` Skipped ${dupes} already logged.` : ''}${skipped ? ` Couldn't read ${skipped} row(s).` : ''}`);
     render();
   } catch (e) {
@@ -1609,7 +1814,8 @@ function handleGpxFile(file) {
       const exists = state.sessions.some((s) => `${s.date}|${s.type}|${s.distanceKm.toFixed(2)}|${s.totalSeconds}` === key);
       if (exists) { toast('That run looks like a duplicate of one already logged.'); return; }
       const saved = await insertSessionDB({ id: null, ...parsed });
-      state.sessions = [...state.sessions, saved].sort((a, b) => (a.date < b.date ? -1 : 1));
+      state.sessions = [...state.sessions, saved].sort(compareSessionsByDate);
+      reconcileWeeklyPlan();
       toast(`Imported: ${parsed.date}, ${parsed.distanceKm.toFixed(2)} km, ${formatDuration(parsed.totalSeconds)}. Defaulted to Easy/RPE 5 — edit as needed.`, 7000);
       render();
     } catch (err) {
@@ -1698,6 +1904,70 @@ async function handleSaveProfile(displayName, optin) {
   }
 }
 
+// Combines all sessions logged on a given date into the shape a plan day
+// needs. Used both when initially generating a plan and when reconciling
+// an already-generated plan against newly logged/edited/deleted sessions.
+function aggregateSessionsForDate(sessions, dateStr, unit) {
+  const matches = sessions.filter((s) => s.date === dateStr);
+  if (!matches.length) return null;
+  const totalKm = matches.reduce((a, s) => a + s.distanceKm, 0);
+  const distDisplay = unit === 'km' ? totalKm : totalKm / KM_PER_MI;
+  const avgRpe = matches.reduce((a, s) => a + s.rpe, 0) / matches.length;
+  const typesLabel = [...new Set(matches.map((s) => TYPE_META[s.type]?.label || s.type))].join(' + ');
+  return {
+    distanceLabel: `${distDisplay.toFixed(1)} ${unit}`,
+    effortLabel: `RPE ${avgRpe.toFixed(1)}`,
+    note: `Already logged (${typesLabel}).`,
+  };
+}
+
+// Re-syncs the currently-displayed weekly plan against the latest sessions,
+// WITHOUT calling the AI again. Any plan day that now has a logged session
+// gets marked "Done" (aggregating that day's actual distance/RPE); the
+// original AI-suggested workout for that day is preserved so it can be
+// restored if the session is later deleted or edited away from that date.
+// Returns true if anything actually changed (so the caller knows to persist
+// + re-render).
+function reconcileWeeklyPlan() {
+  if (!state.weeklyPlan) return false;
+  const unit = state.config.unit;
+  let changed = false;
+  const next = state.weeklyPlan.map((d) => {
+    const agg = aggregateSessionsForDate(state.sessions, d.date, unit);
+    if (agg) {
+      if (d.type !== 'Done') {
+        changed = true;
+        return {
+          date: d.date,
+          type: 'Done',
+          distanceLabel: agg.distanceLabel,
+          effortLabel: agg.effortLabel,
+          note: agg.note,
+          _original: { type: d.type, distanceLabel: d.distanceLabel, effortLabel: d.effortLabel, note: d.note },
+        };
+      }
+      if (d.distanceLabel !== agg.distanceLabel || d.effortLabel !== agg.effortLabel) {
+        changed = true;
+        return { ...d, distanceLabel: agg.distanceLabel, effortLabel: agg.effortLabel, note: agg.note };
+      }
+      return d;
+    }
+    // No session logged for this date (anymore) — revert to the original
+    // AI suggestion if this day was auto-marked Done by an earlier
+    // reconciliation (not by the AI itself at generation time).
+    if (d.type === 'Done' && d._original) {
+      changed = true;
+      return { ...d._original, date: d.date };
+    }
+    return d;
+  });
+  if (changed) {
+    state.weeklyPlan = next;
+    persistConfig({ ...state.config, weeklyPlan: next, weeklyPlanDate: state.config.weeklyPlanDate });
+  }
+  return changed;
+}
+
 async function handleGenerateWeeklyPlan() {
   state.weeklyPlanLoading = true;
   state.weeklyPlanError = '';
@@ -1752,6 +2022,8 @@ async function handleGenerateWeeklyPlan() {
       parsed = withNums.map(({ _num, ...rest }) => rest);
     }
     state.weeklyPlan = parsed;
+    const updatedConfig = { ...state.config, weeklyPlan: parsed, weeklyPlanDate: todayISO() };
+    persistConfig(updatedConfig);
   } catch (err) {
     state.weeklyPlanError = "Couldn't generate a weekly plan right now.";
   } finally {
@@ -1769,7 +2041,14 @@ function wireEvents() {
 
   on('unitKm', 'click', () => { persistConfig({ ...state.config, unit: 'km' }); render(); });
   on('unitMi', 'click', () => { persistConfig({ ...state.config, unit: 'mi' }); render(); });
-  on('editConfigBtn', 'click', () => { state.editingConfig = !state.editingConfig; render(); });
+  on('editConfigBtn', 'click', () => {
+    if (!state.editingConfig) {
+      state.editingWorkDays = [...(state.config.workDays || DEFAULT_CONFIG.workDays)];
+      state.editingWorkDayOverrides = { ...(state.config.workDayOverrides || {}) };
+    }
+    state.editingConfig = !state.editingConfig;
+    render();
+  });
   on('saveConfigBtn', 'click', () => {
     const unit = state.config.unit;
     const raceDistanceRaw = Number($('cfgRaceDistance').value);
@@ -1782,12 +2061,49 @@ function wireEvents() {
       experienceLevel: $('cfgExperience').value,
       raceDistanceKm: raceDistanceRaw > 0 ? (unit === 'km' ? raceDistanceRaw : raceDistanceRaw * KM_PER_MI) : state.config.raceDistanceKm,
       weeklyVolumeCapKm: weeklyCapRaw > 0 ? (unit === 'km' ? weeklyCapRaw : weeklyCapRaw * KM_PER_MI) : state.config.weeklyVolumeCapKm,
+      workDays: state.editingWorkDays ? [...state.editingWorkDays].sort() : state.config.workDays,
+      workDayOverrides: state.editingWorkDayOverrides || state.config.workDayOverrides || {},
     };
+    // The weekly plan is generated by the AI under a specific set of
+    // assumptions (race date/distance, experience level, volume target, work
+    // schedule). If any of those change, the cached plan no longer reflects
+    // reality and should be cleared so the user is prompted to regenerate
+    // rather than silently shown a stale plan built for a different goal.
+    const goalFieldsChanged =
+      next.raceDate !== state.config.raceDate ||
+      next.raceDistanceKm !== state.config.raceDistanceKm ||
+      next.experienceLevel !== state.config.experienceLevel ||
+      next.weeklyVolumeCapKm !== state.config.weeklyVolumeCapKm ||
+      JSON.stringify(next.workDays) !== JSON.stringify(state.config.workDays) ||
+      JSON.stringify(next.workDayOverrides) !== JSON.stringify(state.config.workDayOverrides || {});
+    if (goalFieldsChanged && state.weeklyPlan) {
+      state.weeklyPlan = null;
+      next.weeklyPlan = null;
+      next.weeklyPlanDate = null;
+      toast('Your goal changed — regenerate your weekly plan to reflect it.');
+    }
     persistConfig(next);
     state.editingConfig = false;
     render();
   });
   on('cancelConfigBtn', 'click', () => { state.editingConfig = false; render(); });
+  document.querySelectorAll('.workday-toggle').forEach((btn) => btn.addEventListener('click', () => {
+    const day = Number(btn.dataset.day);
+    const set = new Set(state.editingWorkDays || state.config.workDays);
+    if (set.has(day)) set.delete(day); else set.add(day);
+    state.editingWorkDays = [...set];
+    render();
+  }));
+  document.querySelectorAll('.workday-override-toggle').forEach((btn) => btn.addEventListener('click', () => {
+    const date = btn.dataset.date;
+    const overrides = { ...(state.editingWorkDayOverrides || state.config.workDayOverrides || {}) };
+    const effectiveConfig = { workDays: state.editingWorkDays || state.config.workDays, workDayOverrides: overrides };
+    const currentlyWork = isWorkDay(date, effectiveConfig);
+    overrides[date] = !currentlyWork; // flip whatever the effective status currently is
+    state.editingWorkDayOverrides = overrides;
+    render();
+  }));
+  on('clearOverridesBtn', 'click', () => { state.editingWorkDayOverrides = {}; render(); });
   on('cfgExperience', 'change', (e) => {
     // live-update the weekly cap field to the new level's default without requiring Save first
     const level = e.target.value;
@@ -1842,6 +2158,16 @@ function wireEvents() {
   on('navLeaderboard', 'click', () => { state.page = 'leaderboard'; render(); handleLoadLeaderboard(); });
   on('lbPeriodWeek', 'click', () => { state.leaderboardPeriod = 'week'; handleLoadLeaderboard(); });
   on('lbPeriodMonth', 'click', () => { state.leaderboardPeriod = 'month'; handleLoadLeaderboard(); });
+  document.querySelectorAll('.lb-sortable').forEach((el) => el.addEventListener('click', () => {
+    const key = el.dataset.sortKey;
+    const cur = state.leaderboardSort || {};
+    if (cur.key === key) {
+      state.leaderboardSort = { key, dir: cur.dir === 'asc' ? 'desc' : 'asc' };
+    } else {
+      state.leaderboardSort = { key, dir: LB_DEFAULT_DIR[key] || 'desc' };
+    }
+    render();
+  }));
   on('lbSaveBtn', 'click', () => {
     const name = $('lbDisplayName').value.trim() || currentUser.email.split('@')[0];
     const optin = $('lbOptIn').checked;
@@ -1879,7 +2205,7 @@ function resetTransientState() {
   state.chatMessages = [];
   state.chatError = '';
   state.aiNote = '';
-  state.weeklyPlan = null;
+  state.weeklyPlan = null; // repopulated from persisted config in loadStateForCurrentUser, if present and not stale
   state.weeklyPlanError = '';
   state.weeklyExpanded = false;
 }
